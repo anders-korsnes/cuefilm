@@ -33,6 +33,8 @@ const toggleBodySchema = z.object({
   movieSnapshot: movieSnapshotSchema,
 }).optional();
 
+type Snapshot = z.infer<typeof movieSnapshotSchema>;
+
 const movieIdSchema = z.string().min(1).max(50);
 
 router.get("/", async (req, res) => {
@@ -63,13 +65,13 @@ router.post("/toggle-save/:movieId", async (req, res) => {
     const movieId = movieIdResult.data;
 
     const body = toggleBodySchema.safeParse(req.body);
-    const movieSnapshot = body.success ? body.data?.movieSnapshot : undefined;
+    const movieSnapshot: Snapshot = body.success ? body.data?.movieSnapshot : undefined;
 
     const existing = await LibraryEntry.findOne({ userId, movieId });
     if (existing) {
       existing.saved = !existing.saved;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot;
+        existing.movieSnapshot = movieSnapshot as any;
       }
       await existing.save();
       res.json(existing);
@@ -79,7 +81,7 @@ router.post("/toggle-save/:movieId", async (req, res) => {
         movieId,
         saved: true,
         watched: false,
-        movieSnapshot,
+        movieSnapshot: movieSnapshot as any,
       });
       res.status(201).json(entry);
     }
@@ -100,14 +102,14 @@ router.post("/toggle-watched/:movieId", async (req, res) => {
     const movieId = movieIdResult.data;
 
     const body = toggleBodySchema.safeParse(req.body);
-    const movieSnapshot = body.success ? body.data?.movieSnapshot : undefined;
+    const movieSnapshot: Snapshot = body.success ? body.data?.movieSnapshot : undefined;
 
     const existing = await LibraryEntry.findOne({ userId, movieId });
     if (existing) {
       existing.watched = !existing.watched;
       existing.watchedDate = existing.watched ? new Date() : undefined;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot;
+        existing.movieSnapshot = movieSnapshot as any;
       }
       await existing.save();
       res.json(existing);
@@ -118,7 +120,7 @@ router.post("/toggle-watched/:movieId", async (req, res) => {
         saved: false,
         watched: true,
         watchedDate: new Date(),
-        movieSnapshot,
+        movieSnapshot: movieSnapshot as any,
       });
       res.status(201).json(entry);
     }
@@ -139,14 +141,14 @@ router.post("/toggle-chosen/:movieId", async (req, res) => {
     const movieId = movieIdResult.data;
 
     const body = toggleBodySchema.safeParse(req.body);
-    const movieSnapshot = body.success ? body.data?.movieSnapshot : undefined;
+    const movieSnapshot: Snapshot = body.success ? body.data?.movieSnapshot : undefined;
 
     const existing = await LibraryEntry.findOne({ userId, movieId });
     if (existing) {
       existing.chosen = !existing.chosen;
       existing.chosenDate = existing.chosen ? new Date() : undefined;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot;
+        existing.movieSnapshot = movieSnapshot as any;
       }
       await existing.save();
       res.json(existing);
@@ -158,7 +160,7 @@ router.post("/toggle-chosen/:movieId", async (req, res) => {
         watched: false,
         chosen: true,
         chosenDate: new Date(),
-        movieSnapshot,
+        movieSnapshot: movieSnapshot as any,
       });
       res.status(201).json(entry);
     }
@@ -179,13 +181,13 @@ router.post("/toggle-disliked/:movieId", async (req, res) => {
     const movieId = movieIdResult.data;
 
     const body = toggleBodySchema.safeParse(req.body);
-    const movieSnapshot = body.success ? body.data?.movieSnapshot : undefined;
+    const movieSnapshot: Snapshot = body.success ? body.data?.movieSnapshot : undefined;
 
     const existing = await LibraryEntry.findOne({ userId, movieId });
     if (existing) {
       existing.disliked = !existing.disliked;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot;
+        existing.movieSnapshot = movieSnapshot as any;
       }
       await existing.save();
       res.json(existing);
@@ -196,7 +198,7 @@ router.post("/toggle-disliked/:movieId", async (req, res) => {
         saved: false,
         watched: false,
         disliked: true,
-        movieSnapshot,
+        movieSnapshot: movieSnapshot as any,
       });
       res.status(201).json(entry);
     }
