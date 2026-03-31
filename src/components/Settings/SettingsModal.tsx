@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/react";
 import { useTranslation } from "../../hooks/useTranslation";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import type {
   UserSettings,
   Theme,
@@ -47,8 +48,16 @@ function SettingsModal({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [deleteInput, setDeleteInput] = useState("");
+  const dialogRef = useFocusTrap<HTMLDivElement>();
 
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(settings);
+
+  useEffect(() => {
+    const handler = () => onClose();
+    const el = dialogRef.current;
+    el?.addEventListener("dialog-close", handler);
+    return () => el?.removeEventListener("dialog-close", handler);
+  }, [onClose]);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -131,10 +140,17 @@ function SettingsModal({
 
   return (
     <div className="settings-overlay" onClick={onClose}>
-      <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="settings-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="settings-header">
-          <span className="settings-title">{t("settingsModal.title")}</span>
-          <button className="settings-close" onClick={onClose}>✕</button>
+          <span id="settings-title" className="settings-title">{t("settingsModal.title")}</span>
+          <button className="settings-close" onClick={onClose} aria-label={t("settingsModal.deleteCancel")}>✕</button>
         </div>
 
         <div className="settings-layout">
@@ -168,14 +184,14 @@ function SettingsModal({
                   <div
                     className="settings-avatar-large"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Klikk for å endre bilde"
+                    title={t("settingsModal.avatarClickTitle")}
                   >
                     {displayAvatar ? (
                       <img src={displayAvatar} alt="Avatar" className="avatar-image" />
                     ) : (
                       <span className="avatar-placeholder-large">👤</span>
                     )}
-                    <div className="avatar-overlay">Endre</div>
+                    <div className="avatar-overlay">{t("settingsModal.avatarChange")}</div>
                   </div>
                   <input
                     ref={fileInputRef}
@@ -318,8 +334,8 @@ function SettingsModal({
                 {/* Logg ut */}
                 <div className="konto-zone">
                   <div className="konto-zone-header">
-                    <span className="konto-zone-title">Logg ut</span>
-                    <span className="konto-zone-desc">Du kan logge inn igjen når som helst.</span>
+                    <span className="konto-zone-title">{t("settingsModal.logoutTitle")}</span>
+                    <span className="konto-zone-desc">{t("settingsModal.logoutDesc")}</span>
                   </div>
                   {!showLogoutConfirm ? (
                     <button
@@ -330,13 +346,13 @@ function SettingsModal({
                     </button>
                   ) : (
                     <div className="danger-confirm">
-                      <span className="danger-confirm-text">Er du sikker på at du vil logge ut?</span>
+                      <span className="danger-confirm-text">{t("settingsModal.logoutConfirm")}</span>
                       <div className="danger-confirm-actions">
                         <button
                           className="settings-btn"
                           onClick={() => { signOut(); onClose(); }}
                         >
-                          Ja, logg ut
+                          {t("settingsModal.logoutYes")}
                         </button>
                         <button
                           className="settings-btn"
@@ -365,22 +381,22 @@ function SettingsModal({
                   ) : (
                     <div className="danger-confirm">
                       <span className="danger-confirm-text">
-                        ⚠️ Dette kan ikke angres. All data slettes permanent.
-                        <br />Skriv <strong>slett</strong> for å bekrefte:
+                        {t("settingsModal.deleteWarning")}
+                        <br />{t("settingsModal.deleteTypeConfirm", { word: t("settingsModal.deleteTypeWord") })}
                       </span>
                       <input
                         className="settings-input"
                         type="text"
                         value={deleteInput}
                         onChange={(e) => setDeleteInput(e.target.value)}
-                        placeholder="slett"
+                        placeholder={t("settingsModal.deleteTypeWord")}
                         autoFocus
                       />
                       <div className="danger-confirm-actions">
                         <button
                           className="settings-btn settings-btn-danger"
                           onClick={handleDeleteAccount}
-                          disabled={deleteInput.toLowerCase() !== "slett"}
+                          disabled={deleteInput.toLowerCase() !== t("settingsModal.deleteTypeWord")}
                         >
                           {t("settingsModal.deleteYes")}
                         </button>

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
@@ -10,6 +11,15 @@ import { clerkMiddleware } from "@clerk/express";
 import libraryRouter from "./routes/library.js";
 import settingsRouter from "./routes/settings.js";
 import aiRouter from "./routes/ai.js";
+import historyRouter from "./routes/history.js";
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: 0.2,
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -57,6 +67,7 @@ app.use("/api/ai", aiLimiter);
 app.use("/api/library", libraryRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/history", historyRouter);
 
 app.get("/api/health", (_req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
@@ -64,6 +75,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  Sentry.captureException(err);
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal server error" });
 });

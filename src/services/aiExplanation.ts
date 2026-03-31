@@ -12,11 +12,14 @@ export type AIExplanationResult = {
   error?: string;
 };
 
+export type LikedMovie = { title: string; year: number };
+
 export async function generateAIExplanation(
   movie: Movie,
   criteria: UserCriteria,
   t: TranslateFunc,
   language: string,
+  likedMovies: LikedMovie[] = [],
 ): Promise<AIExplanationResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
@@ -55,6 +58,7 @@ export async function generateAIExplanation(
           socialContext: socialLabel,
         },
         language,
+        likedMovies: likedMovies.slice(0, 5),
       }),
       signal: controller.signal,
     });
@@ -75,5 +79,26 @@ export async function generateAIExplanation(
     }
     console.error("AI explanation error:", err);
     return { explanation: "", error: "network" };
+  }
+}
+
+export async function sendAIFeedback(
+  movieId: string,
+  movieTitle: string,
+  feedback: "up" | "down",
+  getToken: () => Promise<string | null>,
+): Promise<void> {
+  try {
+    const token = await getToken();
+    await fetch(apiUrl("/api/ai/feedback"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ movieId, movieTitle, feedback }),
+    });
+  } catch {
+    // silently fail
   }
 }

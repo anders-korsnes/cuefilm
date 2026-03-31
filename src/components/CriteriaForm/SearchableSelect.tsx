@@ -69,13 +69,16 @@ function SearchableSelect({
       <button
         className={`searchable-select-trigger ${open ? "open" : ""} ${selected ? "has-value" : ""}`}
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        type="button"
       >
         <span className="searchable-select-value">{displayLabel}</span>
-        <span className="searchable-select-arrow">{open ? "▲" : "▼"}</span>
+        <span className="searchable-select-arrow" aria-hidden="true">{open ? "▲" : "▼"}</span>
       </button>
 
       {open && (
-        <div className="searchable-select-dropdown">
+        <div className="searchable-select-dropdown" role="listbox">
           <input
             ref={inputRef}
             className="searchable-select-input"
@@ -90,6 +93,8 @@ function SearchableSelect({
                 <button
                   key={opt.value}
                   className={`searchable-select-option ${selected === opt.value ? "selected" : ""}`}
+                  role="option"
+                  aria-selected={selected === opt.value}
                   onClick={() => handleSelect(opt.value)}
                 >
                   <span>{opt.label}</span>

@@ -1,7 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import translations from "../data/translations";
 import type { AppLanguage } from "../types/userSettings";
 import { LanguageContext } from "./languageContextDef";
+
+const LANG_MAP: Record<AppLanguage, string> = { no: "nb", en: "en" };
 
 export function LanguageProvider({
   children,
@@ -10,7 +12,15 @@ export function LanguageProvider({
   children: ReactNode;
   initialLanguage?: AppLanguage;
 }) {
-  const [language, setLanguage] = useState<AppLanguage>(initialLanguage);
+  const [language, setLanguageState] = useState<AppLanguage>(initialLanguage);
+
+  useEffect(() => {
+    document.documentElement.lang = LANG_MAP[language];
+  }, [language]);
+
+  const setLanguage = useCallback((lang: AppLanguage) => {
+    setLanguageState(lang);
+  }, []);
 
   const t = (key: string, params?: Record<string, string | number>): string => {
     const dict = translations[language] as Record<string, string>;

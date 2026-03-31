@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MovieCard from "../MovieResults/MovieCard";
 import type { Movie } from "../../types/movie";
 import type { UserMovie } from "../../types/userMovie";
 import { useTranslation } from "../../hooks/useTranslation";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 type LibraryModalProps = {
   library: UserMovie[];
@@ -22,7 +23,15 @@ function LibraryModal({
   initialTab = "saved",
 }: LibraryModalProps) {
   const { t } = useTranslation();
+  const dialogRef = useFocusTrap<HTMLDivElement>();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    const handler = () => onClose();
+    const el = dialogRef.current;
+    el?.addEventListener("dialog-close", handler);
+    return () => el?.removeEventListener("dialog-close", handler);
+  }, [onClose]);
 
   const savedEntries = library.filter((entry) => entry.saved);
   const watchedEntries = library.filter((entry) => entry.watched);
@@ -55,7 +64,14 @@ function LibraryModal({
 
   return (
     <div className="library-overlay" onClick={onClose}>
-      <div className="library-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="library-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="library-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="library-modal-header">
           <div className="library-tabs">
             <button
@@ -71,7 +87,7 @@ function LibraryModal({
               {t("library.watchedTab")} ({watchedEntries.length})
             </button>
           </div>
-          <button className="library-close" onClick={onClose}>
+          <button className="library-close" onClick={onClose} aria-label={t("settingsModal.deleteCancel")}>
             ✕
           </button>
         </div>

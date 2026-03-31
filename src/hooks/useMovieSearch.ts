@@ -13,7 +13,7 @@ function useMovieSearch() {
   const [isHiddenGem, setIsHiddenGem] = useState(false);
   const searchIdRef = useRef(0);
 
-  const search = useCallback(async (criteria: UserCriteria, hiddenGem: boolean = false, watchedIds: Set<string> = new Set()) => {
+  const search = useCallback(async (criteria: UserCriteria, hiddenGem: boolean = false, watchedIds: Set<string> = new Set()): Promise<ScoredMovie[]> => {
     const currentSearchId = ++searchIdRef.current;
 
     setLoading(true);
@@ -33,20 +33,22 @@ function useMovieSearch() {
         criteria.mediaType,
       );
 
-      if (currentSearchId !== searchIdRef.current) return;
+      if (currentSearchId !== searchIdRef.current) return [];
 
       if (movies.length === 0) {
         setError(hiddenGem ? t("error.noHiddenGems") : t("error.noResults"));
         setResults([]);
-        return;
+        return [];
       }
 
       const scored = scoreMovies(movies, criteria, watchedIds);
       setResults(scored);
+      return scored;
     } catch {
-      if (currentSearchId !== searchIdRef.current) return;
+      if (currentSearchId !== searchIdRef.current) return [];
       setError(t("error.fetchFailed"));
       setResults([]);
+      return [];
     } finally {
       if (currentSearchId === searchIdRef.current) {
         setLoading(false);

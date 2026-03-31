@@ -1,4 +1,5 @@
 import { useReducer, useEffect, useCallback } from "react";
+import { Routes, Route, useNavigate } from "react-router";
 import CriteriaForm from "./components/CriteriaForm/CriteriaForm";
 import ResultsView from "./components/Results/ResultsView";
 import Loader from "./components/Loader/Loader";
@@ -11,6 +12,7 @@ import { scoreMovies } from "./services/matchingEngine";
 import useUserLibrary from "./hooks/useUserLibrary";
 import useMovieSearch from "./hooks/useMovieSearch";
 import useUserSettings from "./hooks/useUserSettings";
+import useSearchHistory from "./hooks/useSearchHistory";
 import { useAuth } from "@clerk/react";
 import { useTranslation } from "./hooks/useTranslation";
 import type { UserCriteria } from "./types/criteria";
@@ -18,10 +20,7 @@ import type { Movie } from "./types/movie";
 import type { ScoredMovie } from "./services/matchingEngine";
 import type { UserSettings } from "./types/userSettings";
 
-type View = "search" | "results";
-
 type AppState = {
-  view: View;
   criteria: UserCriteria | null;
   allMovies: Movie[];
   isRandom: boolean;
@@ -34,7 +33,6 @@ type AppState = {
 
 type AppAction =
   | { type: "START_SEARCH"; criteria: UserCriteria }
-  | { type: "SHOW_RESULTS" }
   | { type: "RANDOM_START" }
   | { type: "RANDOM_LOADED"; criteria: UserCriteria; results: ScoredMovie[]; newMovies: Movie[] }
   | { type: "RANDOM_DONE" }
@@ -46,7 +44,6 @@ type AppAction =
   | { type: "CLOSE_SETTINGS" };
 
 const initialState: AppState = {
-  view: "search",
   criteria: null,
   allMovies: [],
   isRandom: false,
@@ -61,8 +58,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "START_SEARCH":
       return { ...state, isRandom: false, criteria: action.criteria };
-    case "SHOW_RESULTS":
-      return { ...state, view: "results" };
     case "RANDOM_START":
       return { ...state, randomLoading: true, isRandom: true, randomResults: [] };
     case "RANDOM_LOADED":
@@ -71,12 +66,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
         criteria: action.criteria,
         randomResults: action.results,
         allMovies: [...state.allMovies, ...action.newMovies],
-        view: "results",
       };
     case "RANDOM_DONE":
       return { ...state, randomLoading: false };
     case "GO_BACK":
-      return { ...state, view: "search", isRandom: false };
+      return { ...state, isRandom: false };
     case "ADD_MOVIES":
       return { ...state, allMovies: [...state.allMovies, ...action.movies] };
     case "OPEN_LIBRARY":
@@ -93,11 +87,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
 function App() {
   const { t, setLanguage, language } = useTranslation();
   const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { results, loading, error, isHiddenGem, search } = useMovieSearch();
   const { library, findEntry, toggleSave, toggleWatched } = useUserLibrary();
   const { settings, updateProfile, setTheme, setAppLanguage, clearAllData } =
     useUserSettings();
+  const { saveSearch } = useSearchHistory();
 
   const handleSaveSettings = useCallback((newSettings: UserSettings) => {
     updateProfile(newSettings.profile);
@@ -117,9 +113,23 @@ function App() {
     const watchedIds = new Set(
       library.filter((e) => e.watched).map((e) => e.movieId),
     );
-    await search(newCriteria, hiddenGem, watchedIds);
-    dispatch({ type: "SHOW_RESULTS" });
-  }, [library, search]);
+    const searchResults = await search(newCriteria, hiddenGem, watchedIds);
+    if (searchResults && searchResults.length > 0) {
+      saveSearch(
+        newCriteria,
+        searchResults.slice(0, 5).map((r) => ({
+          movieId: r.movie.id,
+          title: r.movie.title,
+          year: r.movie.year,
+          poster: r.movie.poster,
+          score: r.score,
+        })),
+        false,
+        hiddenGem,
+      );
+    }
+    navigate("/results");
+  }, [library, search, navigate, saveSearch]);
 
   const handleCriteriaSubmit = useCallback(
     (newCriteria: UserCriteria) => handleSearch(newCriteria, false),
@@ -190,17 +200,19 @@ function App() {
         );
 
         dispatch({ type: "RANDOM_LOADED", criteria: tempCriteria, results: scored, newMovies });
-      } else {
-        dispatch({ type: "SHOW_RESULTS" });
+        navigate("/results");
       }
     } catch (err) {
       console.error("Random pick failed:", err);
     } finally {
       dispatch({ type: "RANDOM_DONE" });
     }
-  }, [language, state.allMovies]);
+  }, [language, state.allMovies, navigate]);
 
-  const handleBack = useCallback(() => dispatch({ type: "GO_BACK" }), []);
+  const handleBack = useCallback(() => {
+    dispatch({ type: "GO_BACK" });
+    navigate("/");
+  }, [navigate]);
 
   useEffect(() => {
     if (results.length === 0) return;
@@ -220,8 +232,14 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-row">
-          <h1 onClick={handleBack} style={{ cursor: "pointer" }}>
-            {t("app.title")}
+          <h1>
+            <button
+              className="app-title-button"
+              onClick={handleBack}
+              type="button"
+            >
+              {t("app.title")}
+            </button>
           </h1>
           <div className="header-actions">
             <button
@@ -242,51 +260,83 @@ function App() {
         <p>{t("app.subtitle")}</p>
       </header>
 
-      {state.view === "search" && (
-        <>
-          <div className="random-pick-row">
-            <RandomPickButton
-              onClick={handleRandomPick}
-              loading={state.randomLoading}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <div className="random-pick-row">
+                <RandomPickButton
+                  onClick={handleRandomPick}
+                  loading={state.randomLoading}
+                />
+                <span className="random-pick-text">{t("random.feelingLucky")}</span>
+              </div>
+
+              <CriteriaForm
+                onSubmit={handleCriteriaSubmit}
+                onHiddenGem={handleHiddenGem}
+                initialCriteria={state.criteria}
+              />
+            </>
+          }
+        />
+
+        <Route
+          path="/results"
+          element={
+            <>
+              {activeLoading && <Loader />}
+
+              {!activeLoading && error && !state.isRandom && (
+                <div className="results-error">
+                  <span className="results-error-text">{error}</span>
+                  <button className="back-button" onClick={handleBack}>
+                    {t("results.back")}
+                  </button>
+                </div>
+              )}
+
+              {!activeLoading &&
+                state.criteria &&
+                activeResults.length > 0 && (
+                  <ResultsView
+                    results={activeResults}
+                    criteria={state.criteria}
+                    isHiddenGem={state.isRandom ? false : isHiddenGem}
+                    isRandom={state.isRandom}
+                    findEntry={findEntry}
+                    onToggleSave={toggleSave}
+                    onToggleWatched={toggleWatched}
+                    onBack={handleBack}
+                  />
+                )}
+
+              {!activeLoading && !error && activeResults.length === 0 && !state.criteria && (
+                <div className="results-error">
+                  <span className="results-error-text">{t("error.noResults")}</span>
+                  <button className="back-button" onClick={handleBack}>
+                    {t("results.back")}
+                  </button>
+                </div>
+              )}
+            </>
+          }
+        />
+
+        <Route
+          path="/library"
+          element={
+            <LibraryModal
+              library={library}
+              onToggleSave={toggleSave}
+              onToggleWatched={toggleWatched}
+              onClose={handleBack}
+              initialTab={state.libraryTab}
             />
-            <span className="random-pick-text">{t("random.feelingLucky")}</span>
-          </div>
-
-          <CriteriaForm
-            key={state.view}
-            onSubmit={handleCriteriaSubmit}
-            onHiddenGem={handleHiddenGem}
-            initialCriteria={state.criteria}
-          />
-        </>
-      )}
-
-      {activeLoading && <Loader />}
-
-      {!activeLoading && error && state.view === "results" && !state.isRandom && (
-        <div className="results-error">
-          <span className="results-error-text">{error}</span>
-          <button className="back-button" onClick={handleBack}>
-            {t("results.back")}
-          </button>
-        </div>
-      )}
-
-      {state.view === "results" &&
-        !activeLoading &&
-        state.criteria &&
-        activeResults.length > 0 && (
-          <ResultsView
-            results={activeResults}
-            criteria={state.criteria}
-            isHiddenGem={state.isRandom ? false : isHiddenGem}
-            isRandom={state.isRandom}
-            findEntry={findEntry}
-            onToggleSave={toggleSave}
-            onToggleWatched={toggleWatched}
-            onBack={handleBack}
-          />
-        )}
+          }
+        />
+      </Routes>
 
       {state.libraryOpen && (
         <LibraryModal

@@ -150,6 +150,29 @@ const translations = {
     "settingsModal.deleteYes": "Ja, slett alt",
     "settingsModal.deleteCancel": "Avbryt",
     "settingsModal.save": "Lagre",
+    "settingsModal.avatarClickTitle": "Klikk for å endre bilde",
+    "settingsModal.avatarChange": "Endre",
+    "settingsModal.logoutTitle": "Logg ut",
+    "settingsModal.logoutDesc": "Du kan logge inn igjen når som helst.",
+    "settingsModal.logoutConfirm": "Er du sikker på at du vil logge ut?",
+    "settingsModal.logoutYes": "Ja, logg ut",
+    "settingsModal.deleteWarning":
+      "⚠️ Dette kan ikke angres. All data slettes permanent.",
+    "settingsModal.deleteTypeConfirm": "Skriv {word} for å bekrefte:",
+    "settingsModal.deleteTypeWord": "slett",
+
+    // Auth
+    "auth.signUp": "Lag bruker",
+    "auth.signInSlash": "/ Logg inn",
+
+    // Share
+    "share.button": "Del",
+    "share.text": "Sjekk ut {title} ({year}) — anbefalt av CueFilm!",
+
+    // AI feedback
+    "ai.helpful": "Nyttig",
+    "ai.notHelpful": "Ikke nyttig",
+    "ai.thanks": "Takk for tilbakemeldingen!",
 
     // Errors
     "error.noResults": "Fant ingen filmer som matcher. Prøv bredere kriterier.",
@@ -480,6 +503,26 @@ const translations = {
     "settingsModal.deleteYes": "Yes, delete everything",
     "settingsModal.deleteCancel": "Cancel",
     "settingsModal.save": "Save",
+    "settingsModal.avatarClickTitle": "Click to change photo",
+    "settingsModal.avatarChange": "Change",
+    "settingsModal.logoutTitle": "Log out",
+    "settingsModal.logoutDesc": "You can log back in anytime.",
+    "settingsModal.logoutConfirm": "Are you sure you want to log out?",
+    "settingsModal.logoutYes": "Yes, log out",
+    "settingsModal.deleteWarning":
+      "⚠️ This cannot be undone. All data will be permanently deleted.",
+    "settingsModal.deleteTypeConfirm": "Type {word} to confirm:",
+    "settingsModal.deleteTypeWord": "delete",
+
+    "auth.signUp": "Sign up",
+    "auth.signInSlash": "/ Sign in",
+
+    "share.button": "Share",
+    "share.text": "Check out {title} ({year}) — recommended by CueFilm!",
+
+    "ai.helpful": "Helpful",
+    "ai.notHelpful": "Not helpful",
+    "ai.thanks": "Thanks for your feedback!",
 
     "error.noResults": "No matching movies found. Try broader criteria.",
     "error.noHiddenGems": "No hidden gems found. Try broader criteria.",

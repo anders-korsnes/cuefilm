@@ -85,6 +85,20 @@ function MovieCard({
           >
             {isWatched ? t("movie.watched") : t("movie.notWatched")}
           </button>
+          {"share" in navigator && (
+            <button
+              className="action-button"
+              onClick={() => {
+                navigator.share({
+                  title: movie.title,
+                  text: t("share.text", { title: movie.title, year: movie.year }),
+                  url: window.location.href,
+                }).catch(() => {});
+              }}
+            >
+              {t("share.button")}
+            </button>
+          )}
         </div>
       </div>
 

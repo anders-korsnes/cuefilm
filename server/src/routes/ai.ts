@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { requireAuth, getAuth } from "@clerk/express";
+import { z } from "zod";
+import { AIFeedback } from "../models/AIFeedback.js";
 
 const router = Router();
 
@@ -23,7 +25,7 @@ router.post("/explain", async (req, res) => {
       return;
     }
 
-    const { movie, criteria, language } = req.body ?? {};
+    const { movie, criteria, language, likedMovies } = req.body ?? {};
 
     if (
       !movie?.title ||
@@ -41,6 +43,15 @@ router.post("/explain", async (req, res) => {
     const safeGenre = movie.genre.slice(0, 5).map((g: string) => sanitize(g, 50)).join("/");
     const safePlot = sanitize(movie.plot ?? "", 200);
 
+    let libraryContext = "";
+    if (Array.isArray(likedMovies) && likedMovies.length > 0) {
+      const titles = likedMovies
+        .slice(0, 5)
+        .map((m: { title?: string; year?: number }) => `${sanitize(m.title ?? "", 100)} (${m.year ?? ""})`)
+        .join(", ");
+      libraryContext = `\nThe user has previously enjoyed: ${titles}. Reference these if relevant to explain why this recommendation fits their taste.`;
+    }
+
     const prompt = `You are a warm, knowledgeable movie recommender. In 2-3 sentences in ${lang}, explain why "${safeTitle}" (${movie.year}) is a great pick for someone who:
 - Currently feels: ${sanitize(criteria?.currentMood ?? "not specified", 100)}
 - Wants to feel: ${sanitize(criteria?.desiredMood ?? "not specified", 100)}
@@ -48,7 +59,7 @@ router.post("/explain", async (req, res) => {
 - Watching with: ${sanitize(criteria?.socialContext ?? "not specified", 100)}
 
 The movie is a ${safeGenre} rated ${movie.rating}/10. Plot: ${safePlot}
-
+${libraryContext}
 Be specific about WHY this movie fits their emotional journey. Don't just describe the movie — connect it to their mood. Keep it personal and conversational. No quotation marks around the response.`;
 
     const controller = new AbortController();
@@ -85,6 +96,39 @@ Be specific about WHY this movie fits their emotional journey. Don't just descri
       return;
     }
     console.error("AI explain error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const feedbackSchema = z.object({
+  movieId: z.string().max(50),
+  movieTitle: z.string().max(300).optional(),
+  feedback: z.enum(["up", "down"]),
+});
+
+router.post("/feedback", async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const parsed = feedbackSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid feedback data" });
+      return;
+    }
+
+    await AIFeedback.findOneAndUpdate(
+      { userId, movieId: parsed.data.movieId },
+      { ...parsed.data, userId },
+      { upsert: true, new: true },
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("AI feedback error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
