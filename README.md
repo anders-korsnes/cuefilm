@@ -1,6 +1,6 @@
-# MoodFlix
+# CueFilm
 
-A mood-based movie and TV series recommendation app. Tell MoodFlix how you feel and how you *want* to feel, and it finds the perfect movie for your emotional journey.
+A mood-based movie and TV series recommendation app. Tell CueFilm how you feel and how you *want* to feel, and it finds the perfect movie for your emotional journey.
 
 ## Features
 
@@ -37,8 +37,8 @@ A mood-based movie and TV series recommendation app. Tell MoodFlix how you feel 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/MoodFlix.git
-cd MoodFlix
+git clone https://github.com/your-username/CueFilm.git
+cd CueFilm
 npm install
 cd server && npm install && cd ..
 ```
@@ -73,7 +73,7 @@ cd server && npm run dev
 ## Project Structure
 
 ```
-MoodFlix/
+CueFilm/
 ├── src/                    # Frontend (React + Vite)
 │   ├── components/         # UI components by feature
 │   ├── hooks/              # Custom React hooks

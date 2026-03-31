@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { LanguageProvider } from "./context/LanguageContext";
 import "./index.css";
 
-const storedSettings = localStorage.getItem("moodflix-settings");
+const storedSettings = localStorage.getItem("cuefilm-settings");
 let initialLanguage = "no";
 try {
   if (storedSettings) {

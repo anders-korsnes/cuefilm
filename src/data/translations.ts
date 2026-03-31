@@ -1,7 +1,7 @@
 const translations = {
   no: {
     // Header
-    "app.title": "MoodFlix",
+    "app.title": "CueFilm",
     "app.subtitle": "Finn filmer som passer humøret ditt",
     "header.myList": "★ Min filmliste",
 
@@ -342,7 +342,7 @@ const translations = {
     "Med sine {runtime} minutter passer den perfekt innenfor tiden du har.",
 
   en: {
-    "app.title": "MoodFlix",
+    "app.title": "CueFilm",
     "app.subtitle": "Find movies that match your mood",
     "header.myList": "★ My list",
 

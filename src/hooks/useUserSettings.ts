@@ -22,7 +22,7 @@ function useUserSettings() {
 
   // Theme and language are device-level preferences — stay in localStorage
   const [settings, setSettings] = useState<UserSettings>(() => {
-    const stored = localStorage.getItem("moodflix-settings");
+    const stored = localStorage.getItem("cuefilm-settings");
     try {
       const parsed = stored
         ? { ...defaultSettings, ...JSON.parse(stored) }
@@ -43,7 +43,7 @@ function useUserSettings() {
   // Sync theme + language to localStorage (not profile — that goes to API)
   useEffect(() => {
     localStorage.setItem(
-      "moodflix-settings",
+      "cuefilm-settings",
       JSON.stringify({ theme: settings.theme, appLanguage: settings.appLanguage }),
     );
   }, [settings.theme, settings.appLanguage]);
@@ -120,7 +120,7 @@ function useUserSettings() {
   };
 
   const clearAllData = () => {
-    localStorage.removeItem("moodflix-settings");
+    localStorage.removeItem("cuefilm-settings");
     setSettings(defaultSettings);
     applyTheme(defaultSettings.theme);
   };
