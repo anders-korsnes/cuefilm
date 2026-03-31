@@ -12,6 +12,8 @@ import libraryRouter from "./routes/library.js";
 import settingsRouter from "./routes/settings.js";
 import aiRouter from "./routes/ai.js";
 import historyRouter from "./routes/history.js";
+import roomsRouter from "./routes/rooms.js";
+import pushRouter from "./routes/push.js";
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
@@ -68,6 +70,8 @@ app.use("/api/library", libraryRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/history", historyRouter);
+app.use("/api/rooms", roomsRouter);
+app.use("/api/push", pushRouter);
 
 app.get("/api/health", (_req, res) => {
   const dbReady = mongoose.connection.readyState === 1;

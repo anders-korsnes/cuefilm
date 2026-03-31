@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import usePushNotifications from "../../hooks/usePushNotifications";
 import type {
   UserSettings,
   Theme,
@@ -27,6 +28,7 @@ function SettingsModal({
   const { t } = useTranslation();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { supported: pushSupported, enabled: pushEnabled, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushNotifications();
 
   const clerkAvatarUrl = user?.imageUrl ?? null;
   const clerkName = user?.fullName ?? "";
@@ -325,6 +327,18 @@ function SettingsModal({
                     ))}
                   </div>
                 </div>
+
+                {pushSupported && (
+                  <div className="settings-field">
+                    <label className="settings-label">{t("push.description")}</label>
+                    <button
+                      className={`setting-button ${pushEnabled ? "selected" : ""}`}
+                      onClick={pushEnabled ? pushUnsubscribe : pushSubscribe}
+                    >
+                      {pushEnabled ? t("push.enabled") : t("push.enable")}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

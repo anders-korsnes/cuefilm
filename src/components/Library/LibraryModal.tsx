@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Movie } from "../../types/movie";
 import type { UserMovie } from "../../types/userMovie";
+import type { SearchHistoryEntry } from "../../hooks/useSearchHistory";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 
@@ -10,10 +11,13 @@ type LibraryModalProps = {
   onToggleWatched: (movieId: string, movie: Movie) => void;
   onToggleDisliked: (movieId: string, movie: Movie) => void;
   onClose: () => void;
-  initialTab?: "saved" | "watched";
+  initialTab?: "saved" | "watched" | "history";
+  history?: SearchHistoryEntry[];
+  historyLoading?: boolean;
+  onReplaySearch?: (entry: SearchHistoryEntry) => void;
 };
 
-type Tab = "saved" | "watched";
+type Tab = "saved" | "watched" | "history";
 
 function LibraryModal({
   library,
@@ -22,6 +26,9 @@ function LibraryModal({
   onToggleDisliked,
   onClose,
   initialTab = "saved",
+  history = [],
+  historyLoading = false,
+  onReplaySearch,
 }: LibraryModalProps) {
   const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>();
@@ -93,6 +100,12 @@ function LibraryModal({
             >
               {t("library.watchedTab")} ({watchedEntries.length})
             </button>
+            <button
+              className={`library-tab ${activeTab === "history" ? "active" : ""}`}
+              onClick={() => { setActiveTab("history"); setExpandedId(null); }}
+            >
+              {t("history.tab")} ({history.length})
+            </button>
           </div>
           <button className="library-close" onClick={onClose} aria-label={t("settingsModal.deleteCancel")}>
             ✕
@@ -100,7 +113,13 @@ function LibraryModal({
         </div>
 
         <div className="library-modal-body">
-          {movieItems.length > 0 ? (
+          {activeTab === "history" ? (
+            <HistoryTabContent
+              history={history}
+              loading={historyLoading}
+              onReplay={onReplaySearch}
+            />
+          ) : movieItems.length > 0 ? (
             <div className="movie-list">
               {movieItems.map(({ movie, entry }) => (
                 <LibraryCard
@@ -363,6 +382,98 @@ function LibraryCard({
           </svg>
         </button>
       </div>
+    </div>
+  );
+}
+
+type HistoryTabProps = {
+  history: SearchHistoryEntry[];
+  loading: boolean;
+  onReplay?: (entry: SearchHistoryEntry) => void;
+};
+
+function HistoryTabContent({ history, loading, onReplay }: HistoryTabProps) {
+  const { t } = useTranslation();
+
+  if (loading) {
+    return (
+      <div className="library-empty">
+        <span className="library-empty-icon">⏳</span>
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="library-empty">
+        <span className="library-empty-icon">🔍</span>
+        <span className="library-empty-text">{t("history.empty")}</span>
+        <span className="library-empty-hint">{t("history.emptyHint")}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="history-list">
+      {history.map((entry) => {
+        const moods = [entry.criteria.currentMood, entry.criteria.desiredMood]
+          .filter(Boolean)
+          .map((m) => t(`mood.${m}`))
+          .join(" → ");
+
+        const date = new Date(entry.createdAt);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        return (
+          <button
+            key={entry._id}
+            className="history-card"
+            onClick={() => onReplay?.(entry)}
+          >
+            <div className="history-card-top">
+              <span className="history-moods">
+                {moods || t("history.noMood")}
+              </span>
+              <span className="history-date">{dateStr} {timeStr}</span>
+            </div>
+
+            {entry.topRecommendations.length > 0 && (
+              <div className="history-posters">
+                {entry.topRecommendations.slice(0, 5).map((rec) => (
+                  <div key={rec.movieId} className="history-poster-item">
+                    <img
+                      src={rec.poster}
+                      alt={rec.title}
+                      className="history-poster"
+                      loading="lazy"
+                    />
+                    <span className="history-poster-score">
+                      {Math.round(rec.score)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="history-card-meta">
+              {entry.isRandom && (
+                <span className="history-badge history-badge--random">
+                  {t("history.random")}
+                </span>
+              )}
+              {entry.isHiddenGem && (
+                <span className="history-badge history-badge--gem">
+                  {t("history.gem")}
+                </span>
+              )}
+              <span className="history-media-type">
+                {t(`settings.mediaType.${entry.criteria.mediaType}`)}
+              </span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }

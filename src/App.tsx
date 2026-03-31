@@ -7,18 +7,22 @@ import LibraryModal from "./components/Library/LibraryModal";
 import SettingsModal from "./components/Settings/SettingsModal";
 import RandomPickButton from "./components/RandomPick/RandomPickButton";
 import ProfileMenu from "./components/Header/ProfileMenu";
-import { discoverMovies } from "./services/movieApi";
+import { discoverMovies, searchPerson } from "./services/movieApi";
 import { scoreMovies } from "./services/matchingEngine";
 import useUserLibrary from "./hooks/useUserLibrary";
 import useMovieSearch from "./hooks/useMovieSearch";
 import useUserSettings from "./hooks/useUserSettings";
 import useSearchHistory from "./hooks/useSearchHistory";
+import OnboardingModal from "./components/Onboarding/OnboardingModal";
+import WatchTogetherModal from "./components/WatchTogether/WatchTogetherModal";
+import ShareTasteCard from "./components/ShareTaste/ShareTasteCard";
 import { useAuth } from "@clerk/react";
 import { useTranslation } from "./hooks/useTranslation";
 import type { UserCriteria } from "./types/criteria";
 import type { Movie } from "./types/movie";
 import type { ScoredMovie } from "./services/matchingEngine";
 import type { UserSettings } from "./types/userSettings";
+import type { SearchHistoryEntry } from "./hooks/useSearchHistory";
 
 type AppState = {
   criteria: UserCriteria | null;
@@ -27,8 +31,10 @@ type AppState = {
   randomLoading: boolean;
   randomResults: ScoredMovie[];
   libraryOpen: boolean;
-  libraryTab: "saved" | "watched";
+  libraryTab: "saved" | "watched" | "history";
   settingsOpen: boolean;
+  roomOpen: boolean;
+  tasteOpen: boolean;
 };
 
 type AppAction =
@@ -38,10 +44,14 @@ type AppAction =
   | { type: "RANDOM_DONE" }
   | { type: "GO_BACK" }
   | { type: "ADD_MOVIES"; movies: Movie[] }
-  | { type: "OPEN_LIBRARY"; tab: "saved" | "watched" }
+  | { type: "OPEN_LIBRARY"; tab: "saved" | "watched" | "history" }
   | { type: "CLOSE_LIBRARY" }
   | { type: "OPEN_SETTINGS" }
-  | { type: "CLOSE_SETTINGS" };
+  | { type: "CLOSE_SETTINGS" }
+  | { type: "OPEN_ROOM" }
+  | { type: "CLOSE_ROOM" }
+  | { type: "OPEN_TASTE" }
+  | { type: "CLOSE_TASTE" };
 
 const initialState: AppState = {
   criteria: null,
@@ -52,6 +62,8 @@ const initialState: AppState = {
   libraryOpen: false,
   libraryTab: "saved",
   settingsOpen: false,
+  roomOpen: false,
+  tasteOpen: false,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -81,6 +93,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, settingsOpen: true };
     case "CLOSE_SETTINGS":
       return { ...state, settingsOpen: false };
+    case "OPEN_ROOM":
+      return { ...state, roomOpen: true };
+    case "CLOSE_ROOM":
+      return { ...state, roomOpen: false };
+    case "OPEN_TASTE":
+      return { ...state, tasteOpen: true };
+    case "CLOSE_TASTE":
+      return { ...state, tasteOpen: false };
   }
 }
 
@@ -102,7 +122,7 @@ function App() {
   const { library, findEntry, toggleSave, toggleWatched, toggleChosen, toggleDisliked } = useUserLibrary();
   const { settings, updateProfile, setTheme, setAppLanguage, clearAllData } =
     useUserSettings();
-  const { saveSearch } = useSearchHistory();
+  const { history, loading: historyLoading, saveSearch } = useSearchHistory();
   const [suggestLoading, setSuggestLoading] = useState(false);
 
   const handleSaveSettings = useCallback((newSettings: UserSettings) => {
@@ -231,12 +251,23 @@ function App() {
       const dislikedIds = new Set(disliked.map((e) => e.movieId));
 
       const genreCount: Record<string, number> = {};
+      const directorCount: Record<string, number> = {};
+      const actorCount: Record<string, number> = {};
       const dislikedGenres = new Set<string>();
 
       for (const entry of liked) {
         if (entry.movieSnapshot) {
           for (const g of entry.movieSnapshot.genre) {
             genreCount[g] = (genreCount[g] || 0) + 1;
+          }
+          if (entry.movieSnapshot.director) {
+            directorCount[entry.movieSnapshot.director] =
+              (directorCount[entry.movieSnapshot.director] || 0) + 1;
+          }
+          if (entry.movieSnapshot.actors) {
+            for (const a of entry.movieSnapshot.actors) {
+              actorCount[a] = (actorCount[a] || 0) + 1;
+            }
           }
         }
       }
@@ -262,20 +293,36 @@ function App() {
         genreIds.push(18, 35);
       }
 
+      // Resolve top actors/directors to TMDB person IDs for better discover
+      const topPeople = [
+        ...Object.entries(directorCount).sort(([, a], [, b]) => b - a).slice(0, 1),
+        ...Object.entries(actorCount).sort(([, a], [, b]) => b - a).slice(0, 2),
+      ].map(([name]) => name);
+
+      const personIds = (
+        await Promise.all(topPeople.map((p) => searchPerson(p)))
+      ).filter((id): id is number => id !== null);
+
       const randomPage = Math.floor(Math.random() * 3) + 1;
-      const movies = await discoverMovies(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        genreIds,
-        randomPage,
-        undefined,
-        false,
-        language,
+
+      const [genreMovies, personMovies] = await Promise.all([
+        discoverMovies(
+          undefined, undefined, undefined, undefined,
+          genreIds, randomPage, undefined, false, language,
+        ),
+        personIds.length > 0
+          ? discoverMovies(
+              undefined, undefined, undefined, undefined,
+              undefined, randomPage, undefined, false, language, personIds,
+            )
+          : Promise.resolve([]),
+      ]);
+
+      const allFound = [...genreMovies, ...personMovies].filter(
+        (m, i, self) => self.findIndex((o) => o.id === m.id) === i,
       );
 
-      const filtered = movies.filter(
+      const filtered = allFound.filter(
         (m) => !watchedIds.has(m.id) && !dislikedIds.has(m.id),
       );
 
@@ -312,6 +359,75 @@ function App() {
     dispatch({ type: "GO_BACK" });
     navigate("/");
   }, [navigate]);
+
+  const handleReplaySearch = useCallback(
+    (entry: SearchHistoryEntry) => {
+      dispatch({ type: "CLOSE_LIBRARY" });
+      const criteria: UserCriteria = {
+        currentMood: (entry.criteria.currentMood as UserCriteria["currentMood"]) || null,
+        desiredMood: (entry.criteria.desiredMood as UserCriteria["desiredMood"]) || null,
+        availableTime: 180,
+        concentration: (entry.criteria.concentration as UserCriteria["concentration"]) || null,
+        socialContext: (entry.criteria.socialContext as UserCriteria["socialContext"]) || null,
+        mediaType: (entry.criteria.mediaType as UserCriteria["mediaType"]) || "movie",
+        yearRange: [1920, new Date().getFullYear()],
+        language: "any",
+        country: "any",
+      };
+      handleSearch(criteria, false);
+    },
+    [handleSearch],
+  );
+
+  const handleRoomResults = useCallback(
+    async (room: { participants: { currentMood?: string | null; desiredMood?: string | null; availableTime?: number; mediaType?: string }[] }) => {
+      dispatch({ type: "CLOSE_ROOM" });
+      dispatch({ type: "RANDOM_START" });
+      navigate("/results");
+
+      try {
+        const moodVotes: Record<string, number> = {};
+        let minTime = 480;
+
+        for (const p of room.participants) {
+          if (p.desiredMood) {
+            moodVotes[p.desiredMood] = (moodVotes[p.desiredMood] || 0) + 1;
+          }
+          if (p.availableTime && p.availableTime < minTime) {
+            minTime = p.availableTime;
+          }
+        }
+
+        const topMood = Object.entries(moodVotes)
+          .sort(([, a], [, b]) => b - a)[0]?.[0] || "amused";
+
+        const criteria: UserCriteria = {
+          currentMood: null,
+          desiredMood: topMood as UserCriteria["desiredMood"],
+          availableTime: minTime,
+          concentration: null,
+          socialContext: "friends",
+          mediaType: "both",
+          yearRange: [1920, new Date().getFullYear()],
+          language: "any",
+          country: "any",
+        };
+
+        const watchedIds = new Set(
+          library.filter((e) => e.watched).map((e) => e.movieId),
+        );
+        const searchResults = await search(criteria, false, watchedIds);
+        if (searchResults && searchResults.length > 0) {
+          dispatch({ type: "START_SEARCH", criteria });
+        }
+      } catch (err) {
+        console.error("Room search failed:", err);
+      } finally {
+        dispatch({ type: "RANDOM_DONE" });
+      }
+    },
+    [library, search, navigate],
+  );
 
   useEffect(() => {
     if (results.length === 0) return;
@@ -362,26 +478,46 @@ function App() {
           path="/"
           element={
             <>
-              <div className="random-pick-row">
+              <div className={`quick-actions${isSignedIn ? " quick-actions--dual" : ""}`}>
                 <RandomPickButton
                   onClick={handleRandomPick}
                   loading={state.randomLoading && !suggestLoading}
                 />
 
                 {isSignedIn && (
-                  <div className="suggest-button-wrapper">
-                    <button
-                      className="suggest-pick-button"
-                      onClick={handlePersonalSuggest}
-                      disabled={suggestLoading || library.length === 0}
+                  <button
+                    className="suggest-pick-button"
+                    onClick={handlePersonalSuggest}
+                    disabled={suggestLoading || library.length === 0}
+                  >
+                    {suggestLoading ? t("suggest.loading") : t("suggest.button")}
+                    <span
+                      className="suggest-info-icon"
+                      tabIndex={0}
+                      role="note"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {suggestLoading ? t("suggest.loading") : t("suggest.button")}
-                    </button>
-                    <span className="suggest-info-icon" tabIndex={0}>
-                      ?
+                      i
                       <span className="suggest-tooltip">{t("suggest.tooltip")}</span>
                     </span>
-                  </div>
+                  </button>
+                )}
+              </div>
+
+              <div className="secondary-actions">
+                <button
+                  className="secondary-action-btn"
+                  onClick={() => dispatch({ type: "OPEN_ROOM" })}
+                >
+                  {t("room.button")}
+                </button>
+                {isSignedIn && library.length > 0 && (
+                  <button
+                    className="secondary-action-btn"
+                    onClick={() => dispatch({ type: "OPEN_TASTE" })}
+                  >
+                    {t("taste.button")}
+                  </button>
                 )}
               </div>
 
@@ -447,6 +583,9 @@ function App() {
               onToggleDisliked={toggleDisliked}
               onClose={handleBack}
               initialTab={state.libraryTab}
+              history={history}
+              historyLoading={historyLoading}
+              onReplaySearch={handleReplaySearch}
             />
           }
         />
@@ -460,6 +599,9 @@ function App() {
           onToggleDisliked={toggleDisliked}
           onClose={() => dispatch({ type: "CLOSE_LIBRARY" })}
           initialTab={state.libraryTab}
+          history={history}
+          historyLoading={historyLoading}
+          onReplaySearch={handleReplaySearch}
         />
       )}
 
@@ -471,6 +613,22 @@ function App() {
           onClose={() => dispatch({ type: "CLOSE_SETTINGS" })}
         />
       )}
+
+      {state.roomOpen && (
+        <WatchTogetherModal
+          onClose={() => dispatch({ type: "CLOSE_ROOM" })}
+          onResults={handleRoomResults}
+        />
+      )}
+
+      {state.tasteOpen && (
+        <ShareTasteCard
+          library={library}
+          onClose={() => dispatch({ type: "CLOSE_TASTE" })}
+        />
+      )}
+
+      <OnboardingModal />
     </div>
   );
 }

@@ -22,6 +22,17 @@ async function tmdbFetch<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export async function searchPerson(name: string): Promise<number | null> {
+  try {
+    const data = await tmdbFetch<{ results?: { id: number }[] }>(
+      `${BASE_URL}/search/person?query=${encodeURIComponent(name)}&page=1`,
+    );
+    return data.results?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function pooled<T>(tasks: (() => Promise<T>)[], concurrency = 6): Promise<T[]> {
   const results: T[] = [];
   const executing = new Set<Promise<void>>();
@@ -430,6 +441,7 @@ export async function discoverMovies(
   keywords?: number[],
   hiddenGem: boolean = false,
   appLanguage: string = "no",
+  personIds?: number[],
 ): Promise<Movie[]> {
   try {
     const displayLang = appLanguage === "no" ? "no-NO" : "en-US";
@@ -468,6 +480,10 @@ export async function discoverMovies(
 
     if (keywords && keywords.length > 0) {
       params.set("with_keywords", keywords.join("|"));
+    }
+
+    if (personIds && personIds.length > 0) {
+      params.set("with_people", personIds.join("|"));
     }
 
     const data = await tmdbFetch<{ results?: TmdbMovie[] }>(
