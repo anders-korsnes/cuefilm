@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/Users/ander/Coding Projects/Learning projects/MoodFlix/src/**/*.ts /c/Users/ander/Coding Projects/Learning projects/MoodFlix/src/**/*.tsx)",
+      "Bash(find /c/Users/ander/Coding Projects/Learning projects/MoodFlix/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const c = require\\(''./node_modules/@clerk/react/dist/index.js''\\); console.log\\(Object.keys\\(c\\).filter\\(k => k.includes\\(''Sign''\\) || k.includes\\(''Signed''\\)\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/@clerk/react/package.json''\\).version\\)\")"
+    ]
+  }
+}
