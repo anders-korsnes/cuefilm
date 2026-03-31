@@ -5,14 +5,11 @@ const STORAGE_KEY = "cuefilm-onboarding-done";
 
 function OnboardingModal() {
   const { t } = useTranslation();
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(
+    () => !localStorage.getItem(STORAGE_KEY),
+  );
   const [step, setStep] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const done = localStorage.getItem(STORAGE_KEY);
-    if (!done) setVisible(true);
-  }, []);
 
   useEffect(() => {
     if (visible) dialogRef.current?.showModal();
