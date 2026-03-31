@@ -25,6 +25,8 @@ export async function generateAIExplanation(
   const timeout = setTimeout(() => controller.abort(), 20_000);
 
   try {
+    const hasCriteria = !!(criteria.currentMood || criteria.desiredMood);
+
     const currentMoodLabel = criteria.currentMood
       ? t(`mood.${criteria.currentMood}`)
       : "";
@@ -51,12 +53,12 @@ export async function generateAIExplanation(
           rating: movie.rating,
           plot: movie.plot,
         },
-        criteria: {
+        criteria: hasCriteria ? {
           currentMood: currentMoodLabel,
           desiredMood: desiredMoodLabel,
           concentration: concLabel,
           socialContext: socialLabel,
-        },
+        } : null,
         language,
         likedMovies: likedMovies.slice(0, 5),
       }),

@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+const streamingProviderSchema = new mongoose.Schema(
+  { name: String, logoPath: String },
+  { _id: false },
+);
+
 const movieSnapshotSchema = new mongoose.Schema(
   {
     id: String,
@@ -14,6 +19,10 @@ const movieSnapshotSchema = new mongoose.Schema(
     country: String,
     mediaType: String,
     numberOfSeasons: Number,
+    plot: String,
+    director: String,
+    actors: [String],
+    streamingProviders: [streamingProviderSchema],
   },
   { _id: false },
 );
@@ -25,6 +34,9 @@ const schema = new mongoose.Schema(
     saved: { type: Boolean, default: false },
     watched: { type: Boolean, default: false },
     watchedDate: { type: Date },
+    chosen: { type: Boolean, default: false },
+    chosenDate: { type: Date },
+    disliked: { type: Boolean, default: false },
     personalRating: { type: Number, min: 0, max: 10 },
     movieSnapshot: { type: movieSnapshotSchema },
   },

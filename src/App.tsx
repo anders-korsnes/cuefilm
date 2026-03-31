@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback } from "react";
+import { useReducer, useEffect, useCallback, useState } from "react";
 import { Routes, Route, useNavigate } from "react-router";
 import CriteriaForm from "./components/CriteriaForm/CriteriaForm";
 import ResultsView from "./components/Results/ResultsView";
@@ -84,16 +84,26 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
+// TMDB genre ID mapping for personal suggestions
+const GENRE_NAME_TO_ID: Record<string, number> = {
+  Action: 28, Adventure: 12, Animation: 16, Comedy: 35, Crime: 80,
+  Documentary: 99, Drama: 18, Family: 10751, Fantasy: 14, History: 36,
+  Horror: 27, Music: 10402, Mystery: 9648, Romance: 10749,
+  "Science Fiction": 878, "TV Movie": 10770, Thriller: 53,
+  War: 10752, Western: 37,
+};
+
 function App() {
   const { t, setLanguage, language } = useTranslation();
   const { isSignedIn } = useAuth();
   const navigate = useNavigate();
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { results, loading, error, isHiddenGem, search } = useMovieSearch();
-  const { library, findEntry, toggleSave, toggleWatched } = useUserLibrary();
+  const { library, findEntry, toggleSave, toggleWatched, toggleChosen, toggleDisliked } = useUserLibrary();
   const { settings, updateProfile, setTheme, setAppLanguage, clearAllData } =
     useUserSettings();
   const { saveSearch } = useSearchHistory();
+  const [suggestLoading, setSuggestLoading] = useState(false);
 
   const handleSaveSettings = useCallback((newSettings: UserSettings) => {
     updateProfile(newSettings.profile);
@@ -110,6 +120,7 @@ function App() {
     hiddenGem: boolean,
   ) => {
     dispatch({ type: "START_SEARCH", criteria: newCriteria });
+    navigate("/results");
     const watchedIds = new Set(
       library.filter((e) => e.watched).map((e) => e.movieId),
     );
@@ -128,7 +139,6 @@ function App() {
         hiddenGem,
       );
     }
-    navigate("/results");
   }, [library, search, navigate, saveSearch]);
 
   const handleCriteriaSubmit = useCallback(
@@ -209,6 +219,95 @@ function App() {
     }
   }, [language, state.allMovies, navigate]);
 
+  const handlePersonalSuggest = useCallback(async () => {
+    if (!isSignedIn || library.length === 0) return;
+    setSuggestLoading(true);
+    dispatch({ type: "RANDOM_START" });
+
+    try {
+      const liked = library.filter((e) => e.saved || e.chosen);
+      const disliked = library.filter((e) => e.disliked);
+      const watchedIds = new Set(library.filter((e) => e.watched).map((e) => e.movieId));
+      const dislikedIds = new Set(disliked.map((e) => e.movieId));
+
+      const genreCount: Record<string, number> = {};
+      const dislikedGenres = new Set<string>();
+
+      for (const entry of liked) {
+        if (entry.movieSnapshot) {
+          for (const g of entry.movieSnapshot.genre) {
+            genreCount[g] = (genreCount[g] || 0) + 1;
+          }
+        }
+      }
+      for (const entry of disliked) {
+        if (entry.movieSnapshot) {
+          for (const g of entry.movieSnapshot.genre) {
+            dislikedGenres.add(g);
+          }
+        }
+      }
+
+      const sortedGenres = Object.entries(genreCount)
+        .filter(([g]) => !dislikedGenres.has(g))
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([g]) => g);
+
+      const genreIds = sortedGenres
+        .map((g) => GENRE_NAME_TO_ID[g])
+        .filter(Boolean);
+
+      if (genreIds.length === 0) {
+        genreIds.push(18, 35);
+      }
+
+      const randomPage = Math.floor(Math.random() * 3) + 1;
+      const movies = await discoverMovies(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        genreIds,
+        randomPage,
+        undefined,
+        false,
+        language,
+      );
+
+      const filtered = movies.filter(
+        (m) => !watchedIds.has(m.id) && !dislikedIds.has(m.id),
+      );
+
+      if (filtered.length > 0) {
+        const tempCriteria: UserCriteria = {
+          currentMood: null,
+          desiredMood: null,
+          availableTime: 240,
+          concentration: null,
+          socialContext: null,
+          mediaType: "both",
+          yearRange: [1920, new Date().getFullYear()],
+          language: "any",
+          country: "any",
+        };
+
+        const scored = scoreMovies(filtered, tempCriteria, watchedIds);
+        const newMovies = filtered.filter(
+          (m) => !state.allMovies.some((p) => p.id === m.id),
+        );
+
+        dispatch({ type: "RANDOM_LOADED", criteria: tempCriteria, results: scored, newMovies });
+        navigate("/results");
+      }
+    } catch (err) {
+      console.error("Personal suggestion failed:", err);
+    } finally {
+      dispatch({ type: "RANDOM_DONE" });
+      setSuggestLoading(false);
+    }
+  }, [isSignedIn, library, language, state.allMovies, navigate]);
+
   const handleBack = useCallback(() => {
     dispatch({ type: "GO_BACK" });
     navigate("/");
@@ -250,9 +349,7 @@ function App() {
               {t("header.myList")}
             </button>
             <ProfileMenu
-              onWatchHistory={() => dispatch({ type: "OPEN_LIBRARY", tab: "watched" })}
               onSettings={() => dispatch({ type: "OPEN_SETTINGS" })}
-              onLogout={() => {}}
               avatarUrl={settings.profile.avatarUrl}
             />
           </div>
@@ -268,9 +365,24 @@ function App() {
               <div className="random-pick-row">
                 <RandomPickButton
                   onClick={handleRandomPick}
-                  loading={state.randomLoading}
+                  loading={state.randomLoading && !suggestLoading}
                 />
-                <span className="random-pick-text">{t("random.feelingLucky")}</span>
+
+                {isSignedIn && (
+                  <div className="suggest-button-wrapper">
+                    <button
+                      className="suggest-pick-button"
+                      onClick={handlePersonalSuggest}
+                      disabled={suggestLoading || library.length === 0}
+                    >
+                      {suggestLoading ? t("suggest.loading") : t("suggest.button")}
+                    </button>
+                    <span className="suggest-info-icon" tabIndex={0}>
+                      ?
+                      <span className="suggest-tooltip">{t("suggest.tooltip")}</span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               <CriteriaForm
@@ -308,6 +420,7 @@ function App() {
                     findEntry={findEntry}
                     onToggleSave={toggleSave}
                     onToggleWatched={toggleWatched}
+                    onToggleChosen={toggleChosen}
                     onBack={handleBack}
                   />
                 )}
@@ -331,6 +444,7 @@ function App() {
               library={library}
               onToggleSave={toggleSave}
               onToggleWatched={toggleWatched}
+              onToggleDisliked={toggleDisliked}
               onClose={handleBack}
               initialTab={state.libraryTab}
             />
@@ -343,6 +457,7 @@ function App() {
           library={library}
           onToggleSave={toggleSave}
           onToggleWatched={toggleWatched}
+          onToggleDisliked={toggleDisliked}
           onClose={() => dispatch({ type: "CLOSE_LIBRARY" })}
           initialTab={state.libraryTab}
         />

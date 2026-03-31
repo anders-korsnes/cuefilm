@@ -12,6 +12,7 @@ type MovieResultsProps = {
   findEntry: (movieId: string) => UserMovie | undefined;
   onToggleSave: (movieId: string, movie: Movie) => void;
   onToggleWatched: (movieId: string, movie: Movie) => void;
+  onToggleChosen: (movieId: string, movie: Movie) => void;
 };
 
 function MovieResults({
@@ -20,6 +21,7 @@ function MovieResults({
   findEntry,
   onToggleSave,
   onToggleWatched,
+  onToggleChosen,
 }: MovieResultsProps) {
   const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -30,12 +32,10 @@ function MovieResults({
   const runners = results.slice(1, 4);
   const rest = results.slice(4, 14);
 
-  // Hvis ingen er manuelt expanded, vis topPick som expanded
   const activeExpandedId = expandedId ?? topPick.movie.id;
 
   const handleExpand = (movieId: string) => {
     if (movieId === expandedId) {
-      // Kollapser tilbake — topPick tar over
       setExpandedId(null);
     } else {
       setExpandedId(movieId);
@@ -46,7 +46,6 @@ function MovieResults({
     <div className="movie-results">
       <div className="primary-pick-label">{t("results.recommendation")}</div>
 
-      {/* Top pick */}
       <FilmCard
         movie={topPick.movie}
         score={topPick.score}
@@ -57,9 +56,9 @@ function MovieResults({
         entry={findEntry(topPick.movie.id)}
         onToggleSave={onToggleSave}
         onToggleWatched={onToggleWatched}
+        onToggleChosen={onToggleChosen}
       />
 
-      {/* Runners */}
       {runners.length > 0 && (
         <div className="runner-section">
           <h3 className="runner-heading">{t("results.alternatives")}</h3>
@@ -75,13 +74,13 @@ function MovieResults({
                 entry={findEntry(result.movie.id)}
                 onToggleSave={onToggleSave}
                 onToggleWatched={onToggleWatched}
+                onToggleChosen={onToggleChosen}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Rest */}
       {rest.length > 0 && (
         <RestList
           results={rest}
@@ -91,6 +90,7 @@ function MovieResults({
           findEntry={findEntry}
           onToggleSave={onToggleSave}
           onToggleWatched={onToggleWatched}
+          onToggleChosen={onToggleChosen}
         />
       )}
     </div>
@@ -109,6 +109,7 @@ type FilmCardProps = {
   entry: UserMovie | undefined;
   onToggleSave: (movieId: string, movie: Movie) => void;
   onToggleWatched: (movieId: string, movie: Movie) => void;
+  onToggleChosen: (movieId: string, movie: Movie) => void;
 };
 
 function FilmCard({
@@ -121,6 +122,7 @@ function FilmCard({
   entry,
   onToggleSave,
   onToggleWatched,
+  onToggleChosen,
 }: FilmCardProps) {
   const { t } = useTranslation();
   const scoreClass =
@@ -144,12 +146,21 @@ function FilmCard({
         <div className="primary-info">
           <div className="primary-header">
             <span className="primary-title">{movie.title}</span>
-            <span className={`score-value ${scoreClass}`}>{score}</span>
+            <div className="score-badge-group">
+              <span className={`media-type-badge media-type-badge--${movie.mediaType}`}>
+                {movie.mediaType === "series" ? t("movie.type.series") : t("movie.type.movie")}
+              </span>
+              <span className={`score-value ${scoreClass}`}>{score}</span>
+            </div>
           </div>
 
           <span className="movie-meta">
-            {movie.year} · {movie.runtime} min · ★ {movie.rating} ·{" "}
-            {movie.voteCount.toLocaleString()} {t("movie.votes")}
+            {movie.year} · {movie.runtime}{" "}
+            {movie.mediaType === "series" ? t("movie.minPerEpisode") : "min"}{" "}
+            · ★ {movie.rating}
+            {movie.mediaType === "series" && movie.numberOfSeasons != null && (
+              <> · {movie.numberOfSeasons === 1 ? t("movie.season") : t("movie.seasons").replace("{count}", String(movie.numberOfSeasons))}</>
+            )}
           </span>
           <span className="movie-meta">
             {movie.country}
@@ -168,7 +179,7 @@ function FilmCard({
 
           {movie.streamingProviders && movie.streamingProviders.length > 0 && (
             <div className="streaming-providers">
-              <span className="streaming-label">Tilgjengelig på</span>
+              <span className="streaming-label">{t("movie.streaming")}</span>
               <div className="streaming-logos">
                 {movie.streamingProviders.map((p) => (
                   <img
@@ -199,6 +210,12 @@ function FilmCard({
           <div className="expanded-card-bottom">
             <div className="movie-actions">
               <button
+                className={`action-button action-button--chosen ${entry?.chosen ? "active" : ""}`}
+                onClick={() => onToggleChosen(movie.id, movie)}
+              >
+                {entry?.chosen ? t("movie.chosen") : t("movie.goForIt")}
+              </button>
+              <button
                 className={`action-button ${entry?.saved ? "active" : ""}`}
                 onClick={() => onToggleSave(movie.id, movie)}
               >
@@ -212,29 +229,31 @@ function FilmCard({
               </button>
             </div>
 
-            <button
-              className="expand-card-button"
-              onClick={onExpand}
-              title={t("movie.readLess")}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+            {!isTopPick && (
+              <button
+                className="expand-card-button"
+                onClick={onExpand}
+                title={t("movie.readLess")}
               >
-                <path d="M5.5 1v4h-4" />
-                <path d="M5.5 5L1 1" />
-                <path d="M10.5 1v4h4" />
-                <path d="M10.5 5L15 1" />
-                <path d="M5.5 15v-4h-4" />
-                <path d="M5.5 11L1 15" />
-                <path d="M10.5 15v-4h4" />
-                <path d="M10.5 11L15 15" />
-              </svg>
-            </button>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <path d="M5.5 1v4h-4" />
+                  <path d="M5.5 5L1 1" />
+                  <path d="M10.5 1v4h4" />
+                  <path d="M10.5 5L15 1" />
+                  <path d="M5.5 15v-4h-4" />
+                  <path d="M5.5 11L1 15" />
+                  <path d="M10.5 15v-4h4" />
+                  <path d="M10.5 11L15 15" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -254,11 +273,17 @@ function FilmCard({
         <div className="runner-info">
           <div className="runner-header">
             <span className="runner-title">{movie.title}</span>
-            <span className={`score-value ${scoreClass}`}>{score}</span>
+            <div className="score-badge-group">
+              <span className={`media-type-badge media-type-badge--${movie.mediaType}`}>
+                {movie.mediaType === "series" ? t("movie.type.series") : t("movie.type.movie")}
+              </span>
+              <span className={`score-value ${scoreClass}`}>{score}</span>
+            </div>
           </div>
           <span className="movie-meta">
-            {movie.year} · {movie.runtime} min · ★ {movie.rating} ·{" "}
-            {movie.voteCount.toLocaleString()} {t("movie.votes")}
+            {movie.year} · {movie.runtime}{" "}
+            {movie.mediaType === "series" ? t("movie.minPerEpisode") : "min"}{" "}
+            · ★ {movie.rating}
           </span>
           <div className="movie-genre">
             {movie.genre.map((g) => (
@@ -318,6 +343,7 @@ type RestListProps = {
   findEntry: (movieId: string) => UserMovie | undefined;
   onToggleSave: (movieId: string, movie: Movie) => void;
   onToggleWatched: (movieId: string, movie: Movie) => void;
+  onToggleChosen: (movieId: string, movie: Movie) => void;
 };
 
 function RestList({
@@ -328,6 +354,7 @@ function RestList({
   findEntry,
   onToggleSave,
   onToggleWatched,
+  onToggleChosen,
 }: RestListProps) {
   const { t } = useTranslation();
   const [showMore, setShowMore] = useState(false);
@@ -352,6 +379,7 @@ function RestList({
                 entry={findEntry(result.movie.id)}
                 onToggleSave={onToggleSave}
                 onToggleWatched={onToggleWatched}
+                onToggleChosen={onToggleChosen}
               />
             ))}
           </div>

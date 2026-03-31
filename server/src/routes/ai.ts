@@ -52,7 +52,10 @@ router.post("/explain", async (req, res) => {
       libraryContext = `\nThe user has previously enjoyed: ${titles}. Reference these if relevant to explain why this recommendation fits their taste.`;
     }
 
-    const prompt = `You are a warm, knowledgeable movie recommender. In 2-3 sentences in ${lang}, explain why "${safeTitle}" (${movie.year}) is a great pick for someone who:
+    const hasCriteria = criteria && (criteria.currentMood || criteria.desiredMood);
+
+    const prompt = hasCriteria
+      ? `You are a warm, knowledgeable movie recommender. In 2-3 sentences in ${lang}, explain why "${safeTitle}" (${movie.year}) is a great pick for someone who:
 - Currently feels: ${sanitize(criteria?.currentMood ?? "not specified", 100)}
 - Wants to feel: ${sanitize(criteria?.desiredMood ?? "not specified", 100)}
 - Concentration level: ${sanitize(criteria?.concentration ?? "not specified", 100)}
@@ -60,7 +63,12 @@ router.post("/explain", async (req, res) => {
 
 The movie is a ${safeGenre} rated ${movie.rating}/10. Plot: ${safePlot}
 ${libraryContext}
-Be specific about WHY this movie fits their emotional journey. Don't just describe the movie — connect it to their mood. Keep it personal and conversational. No quotation marks around the response.`;
+Be specific about WHY this movie fits their emotional journey. Don't just describe the movie — connect it to their mood. Keep it personal and conversational. No quotation marks around the response.`
+      : `You are a warm, knowledgeable movie recommender. In 2-3 sentences in ${lang}, explain what makes "${safeTitle}" (${movie.year}) a great movie worth watching.
+
+The movie is a ${safeGenre} rated ${movie.rating}/10. Plot: ${safePlot}
+${libraryContext}
+Focus on the movie's strengths — what makes it special, what kind of experience it delivers, and who would love it. ${libraryContext ? "Connect it to the user's taste based on movies they've enjoyed." : ""} Keep it personal and conversational. No quotation marks around the response.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);

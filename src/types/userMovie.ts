@@ -1,3 +1,8 @@
+export type SnapshotStreamingProvider = {
+  name: string;
+  logoPath: string;
+};
+
 export type MovieSnapshot = {
   id: string;
   title: string;
@@ -11,6 +16,10 @@ export type MovieSnapshot = {
   country: string;
   mediaType: "movie" | "series";
   numberOfSeasons?: number;
+  plot?: string;
+  director?: string;
+  actors?: string[];
+  streamingProviders?: SnapshotStreamingProvider[];
 };
 
 export type UserMovie = {
@@ -18,6 +27,9 @@ export type UserMovie = {
   saved: boolean;
   watched: boolean;
   watchedDate?: string;
+  chosen: boolean;
+  chosenDate?: string;
+  disliked: boolean;
   personalRating?: number;
   movieSnapshot?: MovieSnapshot;
 };

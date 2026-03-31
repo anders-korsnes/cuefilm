@@ -20,6 +20,13 @@ const movieSnapshotSchema = z.object({
   country: z.string().max(200),
   mediaType: z.string().max(20),
   numberOfSeasons: z.number().optional(),
+  plot: z.string().max(2000).optional(),
+  director: z.string().max(300).optional(),
+  actors: z.array(z.string().max(200)).max(20).optional(),
+  streamingProviders: z.array(z.object({
+    name: z.string().max(100),
+    logoPath: z.string().max(500),
+  })).max(20).optional(),
 }).optional();
 
 const toggleBodySchema = z.object({
@@ -118,6 +125,84 @@ router.post("/toggle-watched/:movieId", async (req, res) => {
   } catch (err) {
     console.error("Failed to toggle watched:", err);
     res.status(500).json({ error: "Failed to toggle watched" });
+  }
+});
+
+router.post("/toggle-chosen/:movieId", async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    const movieIdResult = movieIdSchema.safeParse(req.params.movieId);
+    if (!movieIdResult.success) {
+      res.status(400).json({ error: "Invalid movie ID" });
+      return;
+    }
+    const movieId = movieIdResult.data;
+
+    const body = toggleBodySchema.safeParse(req.body);
+    const movieSnapshot = body.success ? body.data?.movieSnapshot : undefined;
+
+    const existing = await LibraryEntry.findOne({ userId, movieId });
+    if (existing) {
+      existing.chosen = !existing.chosen;
+      existing.chosenDate = existing.chosen ? new Date() : undefined;
+      if (movieSnapshot && !existing.movieSnapshot) {
+        existing.movieSnapshot = movieSnapshot;
+      }
+      await existing.save();
+      res.json(existing);
+    } else {
+      const entry = await LibraryEntry.create({
+        userId,
+        movieId,
+        saved: false,
+        watched: false,
+        chosen: true,
+        chosenDate: new Date(),
+        movieSnapshot,
+      });
+      res.status(201).json(entry);
+    }
+  } catch (err) {
+    console.error("Failed to toggle chosen:", err);
+    res.status(500).json({ error: "Failed to toggle chosen" });
+  }
+});
+
+router.post("/toggle-disliked/:movieId", async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    const movieIdResult = movieIdSchema.safeParse(req.params.movieId);
+    if (!movieIdResult.success) {
+      res.status(400).json({ error: "Invalid movie ID" });
+      return;
+    }
+    const movieId = movieIdResult.data;
+
+    const body = toggleBodySchema.safeParse(req.body);
+    const movieSnapshot = body.success ? body.data?.movieSnapshot : undefined;
+
+    const existing = await LibraryEntry.findOne({ userId, movieId });
+    if (existing) {
+      existing.disliked = !existing.disliked;
+      if (movieSnapshot && !existing.movieSnapshot) {
+        existing.movieSnapshot = movieSnapshot;
+      }
+      await existing.save();
+      res.json(existing);
+    } else {
+      const entry = await LibraryEntry.create({
+        userId,
+        movieId,
+        saved: false,
+        watched: false,
+        disliked: true,
+        movieSnapshot,
+      });
+      res.status(201).json(entry);
+    }
+  } catch (err) {
+    console.error("Failed to toggle disliked:", err);
+    res.status(500).json({ error: "Failed to toggle disliked" });
   }
 });
 

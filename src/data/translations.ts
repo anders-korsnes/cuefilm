@@ -107,9 +107,10 @@ const translations = {
     "movie.seasons": "{count} sesonger",
     "movie.season": "1 sesong",
     "movie.minPerEpisode": "min/ep",
+    "movie.streaming": "Tilgjengelig på",
 
     // Library
-    "library.savedTab": "★ Likte filmer",
+    "library.savedTab": "★ Likte",
     "library.watchedTab": "✓ Sett",
     "library.emptySaved": "Du har ikke lagret noen filmer ennå",
     "library.emptyWatched": "Du har ikke markert noen filmer som sett",
@@ -168,6 +169,17 @@ const translations = {
     // Share
     "share.button": "Del",
     "share.text": "Sjekk ut {title} ({year}) — anbefalt av CueFilm!",
+
+    // Movie actions
+    "movie.goForIt": "Denne ser jeg!",
+    "movie.chosen": "✓ Valgt",
+    "movie.dislike": "Ikke for meg",
+    "movie.disliked": "✗ Skjult",
+
+    // Personal suggestion
+    "suggest.button": "Foreslå for meg",
+    "suggest.tooltip": "Basert på filmene du har likt, sett og valgt — og ekskluderer det du ikke likte.",
+    "suggest.loading": "Tenker...",
 
     // AI feedback
     "ai.helpful": "Nyttig",
@@ -462,8 +474,9 @@ const translations = {
     "movie.seasons": "{count} seasons",
     "movie.season": "1 season",
     "movie.minPerEpisode": "min/ep",
+    "movie.streaming": "Available on",
 
-    "library.savedTab": "★ Liked movies",
+    "library.savedTab": "★ Liked",
     "library.watchedTab": "✓ Watched",
     "library.emptySaved": "You haven't saved any movies yet",
     "library.emptyWatched": "You haven't marked any movies as watched",
@@ -519,6 +532,15 @@ const translations = {
 
     "share.button": "Share",
     "share.text": "Check out {title} ({year}) — recommended by CueFilm!",
+
+    "movie.goForIt": "I'll watch this!",
+    "movie.chosen": "✓ Chosen",
+    "movie.dislike": "Not for me",
+    "movie.disliked": "✗ Hidden",
+
+    "suggest.button": "Suggest for me",
+    "suggest.tooltip": "Based on movies you've liked, watched and chosen — excluding ones you didn't like.",
+    "suggest.loading": "Thinking...",
 
     "ai.helpful": "Helpful",
     "ai.notHelpful": "Not helpful",

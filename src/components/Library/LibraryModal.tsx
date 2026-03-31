@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import MovieCard from "../MovieResults/MovieCard";
 import type { Movie } from "../../types/movie";
 import type { UserMovie } from "../../types/userMovie";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -9,6 +8,7 @@ type LibraryModalProps = {
   library: UserMovie[];
   onToggleSave: (movieId: string, movie: Movie) => void;
   onToggleWatched: (movieId: string, movie: Movie) => void;
+  onToggleDisliked: (movieId: string, movie: Movie) => void;
   onClose: () => void;
   initialTab?: "saved" | "watched";
 };
@@ -19,12 +19,14 @@ function LibraryModal({
   library,
   onToggleSave,
   onToggleWatched,
+  onToggleDisliked,
   onClose,
   initialTab = "saved",
 }: LibraryModalProps) {
   const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => onClose();
@@ -54,13 +56,18 @@ function LibraryModal({
         country: snap.country,
         mediaType: snap.mediaType,
         numberOfSeasons: snap.numberOfSeasons,
-        plot: "",
-        director: "",
-        actors: [],
+        plot: snap.plot ?? "",
+        director: snap.director ?? "",
+        actors: snap.actors ?? [],
         mood: { energy: 5, emotional: 5, complexity: 5, feelGoodFactor: 5, tension: 5 },
+        streamingProviders: snap.streamingProviders,
       };
       return { movie, entry };
     });
+
+  const handleToggleExpand = (movieId: string) => {
+    setExpandedId((prev) => (prev === movieId ? null : movieId));
+  };
 
   return (
     <div className="library-overlay" onClick={onClose}>
@@ -76,13 +83,13 @@ function LibraryModal({
           <div className="library-tabs">
             <button
               className={`library-tab ${activeTab === "saved" ? "active" : ""}`}
-              onClick={() => setActiveTab("saved")}
+              onClick={() => { setActiveTab("saved"); setExpandedId(null); }}
             >
               {t("library.savedTab")} ({savedEntries.length})
             </button>
             <button
               className={`library-tab ${activeTab === "watched" ? "active" : ""}`}
-              onClick={() => setActiveTab("watched")}
+              onClick={() => { setActiveTab("watched"); setExpandedId(null); }}
             >
               {t("library.watchedTab")} ({watchedEntries.length})
             </button>
@@ -96,14 +103,15 @@ function LibraryModal({
           {movieItems.length > 0 ? (
             <div className="movie-list">
               {movieItems.map(({ movie, entry }) => (
-                <MovieCard
+                <LibraryCard
                   key={movie.id}
                   movie={movie}
-                  score={-1}
-                  isSaved={entry.saved}
-                  isWatched={entry.watched}
+                  entry={entry}
+                  isExpanded={expandedId === movie.id}
+                  onToggleExpand={() => handleToggleExpand(movie.id)}
                   onToggleSave={onToggleSave}
                   onToggleWatched={onToggleWatched}
+                  onToggleDisliked={activeTab === "watched" ? onToggleDisliked : undefined}
                 />
               ))}
             </div>
@@ -125,6 +133,235 @@ function LibraryModal({
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+type LibraryCardProps = {
+  movie: Movie;
+  entry: UserMovie;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onToggleSave: (movieId: string, movie: Movie) => void;
+  onToggleWatched: (movieId: string, movie: Movie) => void;
+  onToggleDisliked?: (movieId: string, movie: Movie) => void;
+};
+
+function LibraryCard({
+  movie,
+  entry,
+  isExpanded,
+  onToggleExpand,
+  onToggleSave,
+  onToggleWatched,
+  onToggleDisliked,
+}: LibraryCardProps) {
+  const { t } = useTranslation();
+  const [imgError, setImgError] = useState(false);
+
+  if (isExpanded) {
+    return (
+      <div className="primary-pick-content expanded-border">
+        {movie.poster && !imgError ? (
+          <img
+            className="primary-poster"
+            src={movie.poster}
+            alt={movie.title}
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="primary-poster primary-poster-fallback">🎬</div>
+        )}
+
+        <div className="primary-info">
+          <div className="primary-header">
+            <span className="primary-title">{movie.title}</span>
+            <span className={`media-type-badge media-type-badge--${movie.mediaType}`}>
+              {movie.mediaType === "series" ? t("movie.type.series") : t("movie.type.movie")}
+            </span>
+          </div>
+
+          <span className="movie-meta">
+            {movie.year} · {movie.runtime}{" "}
+            {movie.mediaType === "series" ? t("movie.minPerEpisode") : "min"}{" "}
+            · ★ {movie.rating}
+            {movie.mediaType === "series" && movie.numberOfSeasons != null && (
+              <> · {movie.numberOfSeasons === 1 ? t("movie.season") : t("movie.seasons").replace("{count}", String(movie.numberOfSeasons))}</>
+            )}
+          </span>
+          <span className="movie-meta">
+            {movie.country}
+            {movie.language ? ` · ${movie.language}` : ""}
+          </span>
+
+          <div className="movie-genre">
+            {movie.genre.map((g) => (
+              <span key={g} className="genre-tag">
+                {g}
+              </span>
+            ))}
+          </div>
+
+          {movie.streamingProviders && movie.streamingProviders.length > 0 && (
+            <div className="streaming-providers">
+              <span className="streaming-label">{t("movie.streaming")}</span>
+              <div className="streaming-logos">
+                {movie.streamingProviders.map((p) => (
+                  <img
+                    key={p.name}
+                    src={p.logoPath}
+                    alt={p.name}
+                    title={p.name}
+                    className="streaming-logo"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {movie.plot && <p className="primary-plot">{movie.plot}</p>}
+
+          {(movie.director || movie.actors.length > 0) && (
+            <div className="primary-details">
+              {movie.director && (
+                <div className="movie-detail-row">
+                  <span className="detail-label">{t("movie.director")}</span>
+                  <span className="detail-value">{movie.director}</span>
+                </div>
+              )}
+              {movie.actors.length > 0 && (
+                <div className="movie-detail-row">
+                  <span className="detail-label">{t("movie.actors")}</span>
+                  <span className="detail-value">{movie.actors.join(", ")}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="expanded-card-bottom">
+            <div className="movie-actions">
+              <button
+                className={`action-button ${entry.saved ? "active" : ""}`}
+                onClick={() => onToggleSave(movie.id, movie)}
+              >
+                {entry.saved ? t("movie.saved") : t("movie.save")}
+              </button>
+              <button
+                className={`action-button ${entry.watched ? "active" : ""}`}
+                onClick={() => onToggleWatched(movie.id, movie)}
+              >
+                {entry.watched ? t("movie.watched") : t("movie.notWatched")}
+              </button>
+              {onToggleDisliked && (
+                <button
+                  className={`action-button action-button--dislike ${entry.disliked ? "active" : ""}`}
+                  onClick={() => onToggleDisliked(movie.id, movie)}
+                >
+                  {entry.disliked ? t("movie.disliked") : t("movie.dislike")}
+                </button>
+              )}
+            </div>
+
+            <button
+              className="expand-card-button"
+              onClick={onToggleExpand}
+              title={t("movie.readLess")}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M5.5 1v4h-4" />
+                <path d="M5.5 5L1 1" />
+                <path d="M10.5 1v4h4" />
+                <path d="M10.5 5L15 1" />
+                <path d="M5.5 15v-4h-4" />
+                <path d="M5.5 11L1 15" />
+                <path d="M10.5 15v-4h4" />
+                <path d="M10.5 11L15 15" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="runner-card runner-card-clickable" onClick={onToggleExpand}>
+      <div className="runner-card-top">
+        {movie.poster && !imgError ? (
+          <img
+            className="runner-poster"
+            src={movie.poster}
+            alt={movie.title}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="runner-poster runner-poster-fallback">🎬</div>
+        )}
+
+        <div className="runner-info">
+          <div className="runner-header">
+            <span className="runner-title">{movie.title}</span>
+            <span className={`media-type-badge media-type-badge--${movie.mediaType}`}>
+              {movie.mediaType === "series" ? t("movie.type.series") : t("movie.type.movie")}
+            </span>
+          </div>
+          <span className="movie-meta">
+            {movie.year} · {movie.runtime}{" "}
+            {movie.mediaType === "series" ? t("movie.minPerEpisode") : "min"}{" "}
+            · ★ {movie.rating}
+          </span>
+          <div className="movie-genre">
+            {movie.genre.map((g) => (
+              <span key={g} className="genre-tag">
+                {g}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="runner-card-bottom" onClick={(e) => e.stopPropagation()}>
+        <div className="movie-actions">
+          <button
+            className={`action-button ${entry.saved ? "active" : ""}`}
+            onClick={() => onToggleSave(movie.id, movie)}
+          >
+            {entry.saved ? t("movie.saved") : t("movie.save")}
+          </button>
+          <button
+            className={`action-button ${entry.watched ? "active" : ""}`}
+            onClick={() => onToggleWatched(movie.id, movie)}
+          >
+            {entry.watched ? t("movie.watched") : t("movie.notWatched")}
+          </button>
+        </div>
+
+        <button
+          className="expand-card-button"
+          onClick={onToggleExpand}
+          title={t("movie.readMore")}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M9 1h4v4M5 13H1V9" />
+            <path d="M13 1L8 6M1 13l5-5" />
+          </svg>
+        </button>
       </div>
     </div>
   );

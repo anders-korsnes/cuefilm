@@ -52,6 +52,13 @@ function useUserLibrary() {
     country: movie.country,
     mediaType: movie.mediaType,
     numberOfSeasons: movie.numberOfSeasons,
+    plot: movie.plot,
+    director: movie.director,
+    actors: movie.actors,
+    streamingProviders: movie.streamingProviders?.map((p) => ({
+      name: p.name,
+      logoPath: p.logoPath,
+    })),
   });
 
   const toggle = useCallback(async (
@@ -89,7 +96,17 @@ function useUserLibrary() {
     [toggle],
   );
 
-  return { library, findEntry, toggleSave, toggleWatched };
+  const toggleChosen = useCallback(
+    (movieId: string, movie?: Movie) => toggle("toggle-chosen", movieId, movie),
+    [toggle],
+  );
+
+  const toggleDisliked = useCallback(
+    (movieId: string, movie?: Movie) => toggle("toggle-disliked", movieId, movie),
+    [toggle],
+  );
+
+  return { library, findEntry, toggleSave, toggleWatched, toggleChosen, toggleDisliked };
 }
 
 export default useUserLibrary;
