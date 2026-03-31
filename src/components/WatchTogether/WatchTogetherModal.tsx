@@ -40,7 +40,7 @@ function WatchTogetherModal({ onClose, onResults }: Props) {
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   useEffect(() => {
     dialogRef.current?.showModal();
