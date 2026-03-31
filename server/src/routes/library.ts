@@ -34,6 +34,8 @@ const toggleBodySchema = z.object({
 }).optional();
 
 type Snapshot = z.infer<typeof movieSnapshotSchema>;
+type LibraryDoc = InstanceType<typeof LibraryEntry>;
+type MongooseSnapshot = LibraryDoc["movieSnapshot"];
 
 const movieIdSchema = z.string().min(1).max(50);
 
@@ -71,7 +73,7 @@ router.post("/toggle-save/:movieId", async (req, res) => {
     if (existing) {
       existing.saved = !existing.saved;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot as any;
+        existing.movieSnapshot = movieSnapshot as unknown as MongooseSnapshot;
       }
       await existing.save();
       res.json(existing);
@@ -81,7 +83,7 @@ router.post("/toggle-save/:movieId", async (req, res) => {
         movieId,
         saved: true,
         watched: false,
-        movieSnapshot: movieSnapshot as any,
+        movieSnapshot: movieSnapshot as unknown as MongooseSnapshot,
       });
       res.status(201).json(entry);
     }
@@ -109,7 +111,7 @@ router.post("/toggle-watched/:movieId", async (req, res) => {
       existing.watched = !existing.watched;
       existing.watchedDate = existing.watched ? new Date() : undefined;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot as any;
+        existing.movieSnapshot = movieSnapshot as unknown as MongooseSnapshot;
       }
       await existing.save();
       res.json(existing);
@@ -120,7 +122,7 @@ router.post("/toggle-watched/:movieId", async (req, res) => {
         saved: false,
         watched: true,
         watchedDate: new Date(),
-        movieSnapshot: movieSnapshot as any,
+        movieSnapshot: movieSnapshot as unknown as MongooseSnapshot,
       });
       res.status(201).json(entry);
     }
@@ -148,7 +150,7 @@ router.post("/toggle-chosen/:movieId", async (req, res) => {
       existing.chosen = !existing.chosen;
       existing.chosenDate = existing.chosen ? new Date() : undefined;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot as any;
+        existing.movieSnapshot = movieSnapshot as unknown as MongooseSnapshot;
       }
       await existing.save();
       res.json(existing);
@@ -160,7 +162,7 @@ router.post("/toggle-chosen/:movieId", async (req, res) => {
         watched: false,
         chosen: true,
         chosenDate: new Date(),
-        movieSnapshot: movieSnapshot as any,
+        movieSnapshot: movieSnapshot as unknown as MongooseSnapshot,
       });
       res.status(201).json(entry);
     }
@@ -187,7 +189,7 @@ router.post("/toggle-disliked/:movieId", async (req, res) => {
     if (existing) {
       existing.disliked = !existing.disliked;
       if (movieSnapshot && !existing.movieSnapshot) {
-        existing.movieSnapshot = movieSnapshot as any;
+        existing.movieSnapshot = movieSnapshot as unknown as MongooseSnapshot;
       }
       await existing.save();
       res.json(existing);
@@ -198,7 +200,7 @@ router.post("/toggle-disliked/:movieId", async (req, res) => {
         saved: false,
         watched: false,
         disliked: true,
-        movieSnapshot: movieSnapshot as any,
+        movieSnapshot: movieSnapshot as unknown as MongooseSnapshot,
       });
       res.status(201).json(entry);
     }
