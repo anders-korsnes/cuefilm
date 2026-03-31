@@ -15,7 +15,7 @@ export function LanguageProvider({
   const t = (key: string, params?: Record<string, string | number>): string => {
     const dict = translations[language] as Record<string, string>;
     const fallback = translations.no as Record<string, string>;
-    const root = translations as Record<string, string>;
+    const root = translations as unknown as Record<string, string>;
     const text = dict[key] || fallback[key] || root[key] || key;
 
     if (!params) return text;

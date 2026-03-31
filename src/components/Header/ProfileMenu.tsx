@@ -9,7 +9,7 @@ type ProfileMenuProps = {
 };
 
 function ProfileMenu({ onSettings, avatarUrl }: ProfileMenuProps) {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
   const { user } = useUser();
   const { isSignedIn } = useAuth();
   const displayAvatar = avatarUrl ?? user?.imageUrl ?? null;

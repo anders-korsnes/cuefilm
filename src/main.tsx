@@ -4,14 +4,15 @@ import { ClerkProvider } from "@clerk/react";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { LanguageProvider } from "./context/LanguageContext";
+import type { AppLanguage } from "./types/userSettings";
 import "./index.css";
 
 const storedSettings = localStorage.getItem("cuefilm-settings");
-let initialLanguage = "no";
+let initialLanguage: AppLanguage = "no";
 try {
   if (storedSettings) {
     const parsed = JSON.parse(storedSettings);
-    if (typeof parsed?.appLanguage === "string") {
+    if (parsed?.appLanguage === "no" || parsed?.appLanguage === "en") {
       initialLanguage = parsed.appLanguage;
     }
   }

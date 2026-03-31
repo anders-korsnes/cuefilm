@@ -186,6 +186,7 @@ export async function getRandomPick(
       availableTime: prefs.availableTime || 120,
       concentration: context.timeOfDay === "night" ? "low" : "medium",
       socialContext: context.dayOfWeek === "weekend" ? "friends" : "alone",
+      mediaType: "both",
       yearRange: [1970, new Date().getFullYear()],
       language: prefs.language || "any",
       country: prefs.country || "any",
