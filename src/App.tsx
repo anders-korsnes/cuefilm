@@ -16,6 +16,7 @@ import useSearchHistory from "./hooks/useSearchHistory";
 import OnboardingModal from "./components/Onboarding/OnboardingModal";
 import WatchTogetherModal from "./components/WatchTogether/WatchTogetherModal";
 import ShareTasteCard from "./components/ShareTaste/ShareTasteCard";
+import PrivacyPolicy from "./components/Privacy/PrivacyPolicy";
 import { useAuth } from "@clerk/react";
 import { useTranslation } from "./hooks/useTranslation";
 import type { UserCriteria } from "./types/criteria";
@@ -592,6 +593,7 @@ function App() {
             />
           }
         />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
       </Routes>
 
       {state.libraryOpen && (

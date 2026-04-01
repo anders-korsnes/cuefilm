@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/react";
+import { Link } from "react-router";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import usePushNotifications from "../../hooks/usePushNotifications";
@@ -344,6 +345,12 @@ function SettingsModal({
 
             {activeTab === "konto" && (
               <div className="settings-section">
+
+                <div className="konto-zone">
+                  <Link to="/privacy" className="settings-privacy-link" onClick={onClose}>
+                    {t("privacy.linkLabel")}
+                  </Link>
+                </div>
 
                 {/* Logg ut */}
                 <div className="konto-zone">
