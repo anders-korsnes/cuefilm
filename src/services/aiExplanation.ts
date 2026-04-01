@@ -20,6 +20,7 @@ export async function generateAIExplanation(
   t: TranslateFunc,
   language: string,
   likedMovies: LikedMovie[] = [],
+  getToken?: () => Promise<string | null>,
 ): Promise<AIExplanationResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
@@ -42,9 +43,13 @@ export async function generateAIExplanation(
       ? t(`settings.${criteria.concentration}`)
       : "";
 
+    const token = getToken ? await getToken() : null;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(apiUrl("/api/ai/explain"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         movie: {
           title: movie.title,

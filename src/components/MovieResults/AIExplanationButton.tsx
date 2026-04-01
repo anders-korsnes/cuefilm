@@ -35,7 +35,7 @@ function AIExplanationButton({ movie, criteria, likedMovies = [] }: AIExplanatio
     setExplanation(fallback);
     setLoading(true);
 
-    const result = await generateAIExplanation(movie, criteria, t, language, likedMovies);
+    const result = await generateAIExplanation(movie, criteria, t, language, likedMovies, getToken);
     if (result.explanation) setExplanation(result.explanation);
     setLoading(false);
   };
