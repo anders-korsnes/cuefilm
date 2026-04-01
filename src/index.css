@@ -753,6 +753,7 @@ h4 {
 .setting-options {
   display: flex;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .setting-button {
@@ -763,6 +764,7 @@ h4 {
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 0.75rem;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -2907,6 +2909,11 @@ h4 {
 
   .secondary-actions {
     flex-wrap: wrap;
+  }
+
+  .setting-button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.65rem;
   }
 }
 
