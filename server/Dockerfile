@@ -14,4 +14,4 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 
 EXPOSE 3001
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "echo '[DEBUG] dist contents:' && ls -la dist/ && echo '[DEBUG] Starting node...' && node dist/index.js 2>&1"]
