@@ -366,15 +366,18 @@ function App() {
       const criteria: UserCriteria = {
         currentMood: (entry.criteria.currentMood as UserCriteria["currentMood"]) || null,
         desiredMood: (entry.criteria.desiredMood as UserCriteria["desiredMood"]) || null,
-        availableTime: 180,
+        availableTime: entry.criteria.availableTime ?? 180,
         concentration: (entry.criteria.concentration as UserCriteria["concentration"]) || null,
         socialContext: (entry.criteria.socialContext as UserCriteria["socialContext"]) || null,
         mediaType: (entry.criteria.mediaType as UserCriteria["mediaType"]) || "movie",
-        yearRange: [1920, new Date().getFullYear()],
-        language: "any",
-        country: "any",
+        yearRange: [
+          entry.criteria.yearFrom ?? 1920,
+          entry.criteria.yearTo ?? new Date().getFullYear(),
+        ],
+        language: (entry.criteria.language as UserCriteria["language"]) || "any",
+        country: (entry.criteria.country as UserCriteria["country"]) || "any",
       };
-      handleSearch(criteria, false);
+      handleSearch(criteria, entry.isHiddenGem);
     },
     [handleSearch],
   );

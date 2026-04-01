@@ -14,6 +14,11 @@ const saveSearchSchema = z.object({
     concentration: z.string().nullable(),
     socialContext: z.string().nullable(),
     mediaType: z.string(),
+    availableTime: z.number().optional(),
+    yearFrom: z.number().optional(),
+    yearTo: z.number().optional(),
+    language: z.string().optional(),
+    country: z.string().optional(),
   }),
   topRecommendations: z
     .array(

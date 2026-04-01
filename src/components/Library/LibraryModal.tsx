@@ -413,6 +413,57 @@ function HistoryTabContent({ history, loading, onReplay }: HistoryTabProps) {
     );
   }
 
+  const countryTranslationKey: Record<string, string> = {
+    american: "usa", british: "uk", canadian: "canada", australian: "australia",
+    newzealand: "newzealand", irish: "ireland", norwegian: "norway", swedish: "sweden",
+    danish: "denmark", finnish: "finland", french: "france", spanish: "spain",
+    portuguese: "portugal", german: "germany", austrian: "austria", swiss: "switzerland",
+    dutch: "netherlands", belgian: "belgium", italian: "italy", russian: "russia",
+    polish: "poland", czech: "czech", hungarian: "hungary", romanian: "romania",
+    greek: "greece", turkish: "turkey", israeli: "israel", iranian: "iran",
+    egyptian: "egypt", nigerian: "nigeria", southafrican: "southafrica",
+    indian: "india", korean: "southkorea", japanese: "japan", chinese: "china",
+    thai: "thailand", indonesian: "indonesia", brazilian: "brazil", mexican: "mexico",
+    argentinian: "argentina", colombian: "colombia",
+  };
+
+  const buildFilterChips = (entry: SearchHistoryEntry) => {
+    const chips: { label: string; icon: string }[] = [];
+    const c = entry.criteria;
+
+    chips.push({ label: t(`settings.mediaType.${c.mediaType}`), icon: c.mediaType === "series" ? "📺" : "🎬" });
+
+    if (c.availableTime && c.availableTime > 30) {
+      chips.push({ label: `${c.availableTime} min`, icon: "⏱" });
+    }
+
+    if (c.concentration) {
+      chips.push({ label: t(`settings.${c.concentration}`), icon: "🧠" });
+    }
+
+    if (c.socialContext) {
+      chips.push({ label: t(`settings.${c.socialContext}`), icon: "👥" });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const from = c.yearFrom ?? 1920;
+    const to = c.yearTo ?? currentYear;
+    if (from !== 1920 || to !== currentYear) {
+      chips.push({ label: from === to ? `${from}` : `${from}–${to}`, icon: "📅" });
+    }
+
+    if (c.language && c.language !== "any") {
+      chips.push({ label: t(`lang.${c.language}`), icon: "🗣" });
+    }
+
+    if (c.country && c.country !== "any") {
+      const key = countryTranslationKey[c.country] ?? c.country;
+      chips.push({ label: t(`country.${key}`), icon: "🌍" });
+    }
+
+    return chips;
+  };
+
   return (
     <div className="history-list">
       {history.map((entry) => {
@@ -424,6 +475,7 @@ function HistoryTabContent({ history, loading, onReplay }: HistoryTabProps) {
         const date = new Date(entry.createdAt);
         const dateStr = date.toLocaleDateString();
         const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const chips = buildFilterChips(entry);
 
         return (
           <button
@@ -436,6 +488,25 @@ function HistoryTabContent({ history, loading, onReplay }: HistoryTabProps) {
                 {moods || t("history.noMood")}
               </span>
               <span className="history-date">{dateStr} {timeStr}</span>
+            </div>
+
+            <div className="history-filters">
+              {chips.map((chip, i) => (
+                <span key={i} className="history-filter-chip">
+                  <span className="history-filter-icon">{chip.icon}</span>
+                  {chip.label}
+                </span>
+              ))}
+              {entry.isRandom && (
+                <span className="history-filter-chip history-filter-chip--random">
+                  🎲 {t("history.random")}
+                </span>
+              )}
+              {entry.isHiddenGem && (
+                <span className="history-filter-chip history-filter-chip--gem">
+                  💎 {t("history.gem")}
+                </span>
+              )}
             </div>
 
             {entry.topRecommendations.length > 0 && (
@@ -455,22 +526,6 @@ function HistoryTabContent({ history, loading, onReplay }: HistoryTabProps) {
                 ))}
               </div>
             )}
-
-            <div className="history-card-meta">
-              {entry.isRandom && (
-                <span className="history-badge history-badge--random">
-                  {t("history.random")}
-                </span>
-              )}
-              {entry.isHiddenGem && (
-                <span className="history-badge history-badge--gem">
-                  {t("history.gem")}
-                </span>
-              )}
-              <span className="history-media-type">
-                {t(`settings.mediaType.${entry.criteria.mediaType}`)}
-              </span>
-            </div>
           </button>
         );
       })}

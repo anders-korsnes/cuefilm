@@ -92,6 +92,7 @@ function SearchableSelect({
               filtered.map((opt) => (
                 <button
                   key={opt.value}
+                  type="button"
                   className={`searchable-select-option ${selected === opt.value ? "selected" : ""}`}
                   role="option"
                   aria-selected={selected === opt.value}

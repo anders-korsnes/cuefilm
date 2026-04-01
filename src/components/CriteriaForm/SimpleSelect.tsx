@@ -45,6 +45,7 @@ function SimpleSelect({
   return (
     <div className="simple-select" ref={containerRef}>
       <button
+        type="button"
         className={`simple-select-trigger ${open ? "open" : ""} ${selected ? "has-value" : ""}`}
         onClick={() => setOpen(!open)}
       >
@@ -57,6 +58,7 @@ function SimpleSelect({
           {options.map((opt) => (
             <button
               key={opt.value}
+              type="button"
               className={`simple-select-option ${selected === opt.value ? "selected" : ""}`}
               onClick={() => handleSelect(opt.value)}
             >

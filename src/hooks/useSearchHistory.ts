@@ -11,6 +11,11 @@ export type SearchHistoryEntry = {
     concentration: string | null;
     socialContext: string | null;
     mediaType: string;
+    availableTime?: number;
+    yearFrom?: number;
+    yearTo?: number;
+    language?: string;
+    country?: string;
   };
   topRecommendations: {
     movieId: string;
@@ -81,6 +86,11 @@ export default function useSearchHistory() {
               concentration: criteria.concentration,
               socialContext: criteria.socialContext,
               mediaType: criteria.mediaType,
+              availableTime: criteria.availableTime,
+              yearFrom: criteria.yearRange[0],
+              yearTo: criteria.yearRange[1],
+              language: criteria.language,
+              country: criteria.country,
             },
             topRecommendations: topMovies.slice(0, 5),
             isRandom,

@@ -119,7 +119,7 @@ function CriteriaForm({
     <form className="criteria-form" onSubmit={handleSubmit}>
       <div className="criteria-form-header">
         {hasAnyValue && (
-          <button className="reset-button" onClick={handleReset}>
+          <button type="button" className="reset-button" onClick={handleReset}>
             {t("submit.reset")}
           </button>
         )}

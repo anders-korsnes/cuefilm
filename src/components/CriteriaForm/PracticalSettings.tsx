@@ -149,6 +149,7 @@ function PracticalSettings({
           {(["movie", "series", "both"] as MediaType[]).map((type) => (
             <button
               key={type}
+              type="button"
               className={`setting-button ${mediaType === type ? "selected" : ""}`}
               onClick={() => onMediaTypeChange(type)}
             >
@@ -257,6 +258,7 @@ function PracticalSettings({
           {concentrationOptions.map((option) => (
             <button
               key={option.value ?? "none"}
+              type="button"
               className={`setting-button ${concentration === option.value ? "selected" : ""}`}
               onClick={() => onConcentrationChange(option.value)}
             >
@@ -272,6 +274,7 @@ function PracticalSettings({
           {socialOptions.map((option) => (
             <button
               key={option.value ?? "none"}
+              type="button"
               className={`setting-button ${socialContext === option.value ? "selected" : ""}`}
               onClick={() => onSocialContextChange(option.value)}
             >

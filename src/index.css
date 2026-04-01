@@ -3251,35 +3251,41 @@ h4 {
   object-fit: cover;
 }
 
-.history-card-meta {
+.history-filters {
   display: flex;
-  gap: var(--space-xs);
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
-.history-badge {
+.history-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-family: var(--font-mono);
   font-size: 0.6rem;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
 }
 
-.history-badge--random {
+.history-filter-icon {
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+.history-filter-chip--random {
   background: var(--amber-glow);
   color: var(--amber);
-  border: 1px solid var(--amber);
+  border-color: var(--amber);
 }
 
-.history-badge--gem {
+.history-filter-chip--gem {
   background: var(--green-subtle);
   color: var(--green-dim);
-  border: 1px solid var(--green-dim);
-}
-
-.history-media-type {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--text-muted);
+  border-color: var(--green-dim);
 }
 
 .history-poster-item {
